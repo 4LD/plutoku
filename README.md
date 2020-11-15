@@ -1,12 +1,14 @@
 # plutoku = Sudoku en *Pluto.jl*
 ## Permet de résoudre un Sudoku via Pluto.jl, en Julia (et un peu de Javascript :)
 
-### Tuto :
+### Tutoriel pour le voir en ligne :
 Cliquer sur le lien https://mybinder.org/v2/gh/fonsp/pluto-on-binder/HEAD?urlpath=pluto
 
 Cela va ouvrir *Pluto.jl* (via un *Binder*)... cela peut prendre un peu de temps :)
 
-Puis dans *Pluto.jl*, ouvrir le **plutoku** en mettant dans `Open from file:` : https://github.com/4LD/plutoku/blob/main/Plutoku.jl puis cliquer sur `Open` 
+Puis dans *Pluto.jl*, ouvrir le **plutoku** en mettant dans `Open from file:` : https://github.com/4LD/plutoku/blob/main/Plutoku.jl 
+
+Enfin cliquer sur `Open` et vous pouvez résoudre des sudokus en modifiant le premier ;)
 
 ### Note : si tu vois des messages d'erreurs, ne t'en fait pas, clique juste sur `Ok` à chaque fois :)
 
