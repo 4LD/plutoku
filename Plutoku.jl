@@ -260,16 +260,228 @@ td input{
 # Pour la vue HTML et ce style, cela est fortement inspiré de https://observablehq.com/@filipermlh/ia-sudoku-ple1
 # Bonus (non fait pour le moment) : Pour basculer entre plusieurs champs automatiquement si besoin : https://stackoverflow.com/a/15595732
 
+# ╔═╡ 7cce8f50-2469-11eb-058a-099e8f6e3103
+md"## Sudoku initial ⤴ (modifiable) et le résultat :"
+
+# ╔═╡ 9abbcc70-2429-11eb-3278-f5f018fad179
+begin 
+	# styleCSSpourSudokuCachéSousLeTitre! ## juste la case caché en dessous du titre
+	matriceSudoku(listeJSudokuDeHTML) = hcat(listeJSudokuDeHTML...)
+	# matriceSudoku_(listeJSudokuDeHTML) = hcat(listeJSudokuDeHTML...)' # mieux mais..
+	matriceàlisteJS(matrice9x9) = [matrice9x9[:,i] for i in 1:9]
+	# listeJSudokuDeHTMLavec0 = fill(fill(0,9),9)
+	# matriceàlisteJS(matriceSudoku(listeJSudokuDeHTML)), listeJSudokuDeHTML
+	
+	function htmlSudoku(listede9élémentsquisontdeslistesde9chiffres😄)
+		if typeof(listede9élémentsquisontdeslistesde9chiffres😄)==String 
+			return listede9élémentsquisontdeslistesde9chiffres😄
+		else
+			return HTML(raw"""<script>
+		//styleCSSpourSudokuCachéSousLeTitre!
+		const createSudokuHtml = (values) => {
+		  const data = [];
+		  const htmlData = [];
+		  for(let i=0; i<9;i++){
+			let htmlRow = [];
+			data.push([]);
+			for(let j=0; j<9;j++){
+			  const valuesLine = values[i];
+			  const value = valuesLine?valuesLine[j]:0;
+				// j'ai sabré volontairement cette partie 😄
+			  const block = [Math.floor(i/3), Math.floor(j/3)];
+			  const isEven = ((block[0]+block[1])%2 === 0);
+			  const htmlCell = html`<td class='${isEven?"even-color":"odd-color"}'>${(value||'')}</td>`; // modifié légèrement
+			  data[i][j] = value||0;
+			  htmlRow.push(htmlCell);
+			}
+			htmlData.push(html`<tr>${htmlRow}</tr>`);
+		  }
+		  const _sudoku = html`<table>
+			  <tbody>${htmlData}</tbody>
+			</table><br>`  
+		  // return {_sudoku,data};
+		  return _sudoku;
+
+		}
+		// sinon : return createSudokuHtml(...)._sudoku;
+		return createSudokuHtml(""" *"$listede9élémentsquisontdeslistesde9chiffres😄"*""");
+		</script>""")
+		end
+	end
+	
+	kelcarré(lig,col) = 1+ 3*div(lig-1,3) + div(col-1,3) # n° du carré et mat9x9(i,j)
+	carré(i,j)= 1+div(i-1,3)*3:3+div(i-1,3)*3, 1+div(j-1,3)*3:3+div(j-1,3)*3
+	views(mat,i,j)= (view(mat,i,:), view(mat,:,j), view(mat, carré(i,j)...))
+	listecarré(mat)= [view(mat,carré(i,j)...) for i in 1:3:9 for j in 1:3:9]
+	chiffrePossible(mat,i,j)= setdiff(1:9,views(mat,i,j)...)
+	function vérifSudokuBon(mat)
+		lescarrés = listecarré(mat)
+		for x in 1:9
+			for i in 1:9
+				if count(==(x), mat[i,:])>1
+					return false
+				end
+			end
+			for j in 1:9
+				if count(==(x), mat[:,j])>1
+					return false
+				end
+			end
+			for c in lescarrés
+				if count(==(x), c)>1
+					return false
+				end
+			end
+		end
+		return true
+	end
+	# const nbToursMax = 3
+	
+	function trucquirésoudtoutSudoku(listeJSudokuDeHTML) 
+	nbTours = 1
+	nbToursTotal = 1
+	# nbToursMax = 100_000_000 # pour éviter de tourner en rond... sécurité en plus
+	mS = matriceSudoku(listeJSudokuDeHTML)
+	lesZéros = [(i,j) for i in 1:9, j in 1:9 if mS[i,j]==0]
+	
+	listedechoix = []
+	listedancienneMat = []
+	listedesZéros = []
+	listeTours = []
+	nbChoixfait = 0
+	minChoixdesZéros = 10
+	allerAuChoixSuivant = false
+	choixPrécédent = false
+	choixAfaire = false
+	pasVudebug = true
+	choixAfaireFait = false
+	if listeJSudokuDeHTML==[[1,0,0,0,0,0,0,0,0],[0,2,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]]
+		return ([[1,3,4,2,5,6,7,8,9],[5,2,6,7,8,9,1,3,4],[7,8,9,1,3,4,2,5,6],[2,5,1,3,4,7,9,6,8],[8,6,3,5,9,1,4,2,7],[4,9,7,6,2,8,3,1,5],[3,4,5,8,7,2,6,9,1],[6,7,2,9,1,5,8,4,3],[9,1,8,4,6,3,5,7,2]],md"""**Pour résoudre ce sudoku :** il fallait faire **48 choix** et **24 tours** (si on savait à l'avance les bons choix), ce programme ayant fait rééllement *2 457 708 tours* !!! 
+				
+... j'ai un peu triché dans cette "IA" (en incluant ce cas) pour vous faire gagner du temps 😄""")
+	elseif vérifSudokuBon(mS)
+		# while pasVudebug && length(lesZéros)>0 && nbToursTotal <= nbToursMax
+		while length(lesZéros)>0 # && nbToursTotal <= nbToursMax
+			çaNavancePas = true
+			if !allerAuChoixSuivant
+				for (key, (i,j)) in enumerate(lesZéros)
+					listechiffre = chiffrePossible(mS,i,j)
+					if listechiffre == []
+						if choixAfaireFait
+							allerAuChoixSuivant = true # choix pas bon ^^
+						# else ### pasVudebug = false
+						# 	return "bug", md"# bug... ce cas ne devrait pas arriver"
+						end
+					elseif length(listechiffre) == 1
+						mS[i,j]=listechiffre[1]
+						deleteat!(lesZéros, key) ## trop facile ^^
+						çaNavancePas = false
+					elseif çaNavancePas && length(listechiffre) < minChoixdesZéros
+						minChoixdesZéros = length(listechiffre)
+						choixAfaire = (i,j, 1, minChoixdesZéros, listechiffre)
+					end
+				end
+			end
+			if çaNavancePas || allerAuChoixSuivant
+				minChoixdesZéros = 10
+				if allerAuChoixSuivant
+					if choixPrécédent==false || listedechoix==[]
+						### pasVudebug = false
+						return "Sudoku impossible", md"# Sudoku impossible à résoudre, vous essayez de me piéger... sinon, revérifier votre Sudoku initial, car celui-ci n'a pas de solution possible (ex: une case impossible car elle attend un 1 pour cette ligne mais un 9 pour cette colonne"
+					elseif choixPrécédent[3] < choixPrécédent[4] # suivant
+						(i,j, choix, l, lc) = choixPrécédent
+						choixPrécédent = (i,j, choix+1, l, lc)
+						listedechoix[nbChoixfait] = choixPrécédent
+						mS = copy(listedancienneMat[nbChoixfait])
+						nbTours = listeTours[nbChoixfait]
+						allerAuChoixSuivant = false
+						mS[i,j] = lc[choix+1]
+						lesZéros = copy(listedesZéros[nbChoixfait])
+					elseif length(listedechoix) < 2 # pas de bol
+						# pasVudebug = false
+						return "Sudoku impossible", md"# Sudoku impossible à résoudre, vous essayez de me piéger... sinon, revérifier votre Sudoku initial, car celui-ci n'a pas de solution possible (ex: une case impossible car elle attend un 1 pour cette ligne mais un 9 pour cette colonne"
+					else # il faut revenir d'un cran dans la liste historique
+						deleteat!(listedechoix, nbChoixfait)
+						deleteat!(listedancienneMat, nbChoixfait)
+						deleteat!(listedesZéros, nbChoixfait)
+						deleteat!(listeTours, nbChoixfait)
+						nbChoixfait -= 1
+						choixPrécédent = listedechoix[nbChoixfait]
+						mS = copy(listedancienneMat[nbChoixfait])
+						lesZéros = copy(listedesZéros[nbChoixfait])
+						nbTours = listeTours[nbChoixfait]
+					end
+				else # nouveau choix
+					choixAfaireFait = true
+					push!(listedechoix, choixAfaire) # sauf erreur, pas de copie
+					push!(listedancienneMat , copy(mS)) # copie pour pas bouger
+					filter!(!=(choixAfaire[1:2]), lesZéros)
+					push!(listedesZéros , copy(lesZéros)) # copie pour pas bouger
+					push!(listeTours, nbTours-1)
+					nbChoixfait += 1
+					mS[choixAfaire[1:2]...] = choixAfaire[5][1]
+					nbTours = nbTours-1
+					choixPrécédent = choixAfaire
+				end
+			end	
+			nbTours += 1
+			nbToursTotal += 1
+		end
+	else return ("Merci de corriger votre Sudoku : chiffres en double", md"""# Merci de revoir votre sudoku, il n'est pas conforme : 
+			
+			En effet, il doit y avoir au moins sur une ligne ou colonne ou carré un chiffre en double ! 😄""")
+	end
+	# return matriceàlisteJS(mS') ## si vous utilisez : matriceSudoku_
+	return (matriceàlisteJS(mS), md"**Pour résoudre ce sudoku :** il a fallu faire **$nbChoixfait choix** et **$nbTours tours** (si on savait à l'avance les bons choix), ce programme ayant fait rééllement *$nbToursTotal tours* !!! 😃")
+	# end
+	end
+	
+	############### Package à ajouter pour le mode Sombre ####################
+	# import Pkg; Pkg.add(url="https://github.com/Pocket-titan/DarkMode");   #
+	# import DarkMode; shiftetentréePourremettreEnSombre = DarkMode.enable() #
+	
+	# shiftetentréePourremettreEnSombre # si souci de couleur, ceci permet de remettre en DarkMode ou mode Sombre -> merci de faire Maj. (=flèche vers le haut) et Entrée en même temps pour le relancer si besoin..
+	function puces(liste, valdéfaut=nothing ; idPuces="p"*string(rand(Int)))
+	début = """<form id="$idPuces">"""
+	fin = """</form><script>const form = document.querySelector('#$idPuces')
+form.oninput = (e) => { form.value = e.target.value; }
+						// and bubble upwards
+// set initial value:
+const selected_radio = form.querySelector('input[checked]');
+if(selected_radio != null) {form.value = selected_radio.value;}
+</script>"""
+	inputs = ""
+	for item in liste
+		inputs *= """<input type="radio" id="$idPuces$item" name="$idPuces" value="$item" style="margin: 0 5px 0 20px;" $(item == valdéfaut ? "checked" : "")><label for="$idPuces$item">$item</label>"""
+	end
+	# for (item,valeur) in liste ### si liste::Array{Pair{String,String},1}
+	# 	inputs *= """<input type="radio" id="$idPuces$item" name="$idPuces" value="$item" style="margin: 0 4px 0 20px;" $(item == valdéfaut ? "checked" : "")><label for="$idPuces$item">$valeur</label>"""
+	# end
+	return HTML(début * inputs * fin)
+end
+
+	SudokuVideSiBesoin=[[[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]],
+						[[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,1,2,3,4,5,0,0,0],[0,2,0,0,3,0,6,0,0],[0,3,4,5,6,0,0,7,0],[0,6,0,0,7,0,8,0,0],[0,7,0,0,8,9,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]]]
+	
+end;
+
+# ╔═╡ caf45fd0-2797-11eb-2af5-e14c410d5144
+@bind viderOupas puces(["Vider le sudoku initial","Le sudoku initial par Alexis ;)"],"Le sudoku initial par Alexis ;)")
+
 # ╔═╡ a038b5b0-23a1-11eb-021d-ef7de773ef0e
-@bind listeJSudokuDeHTML html"""
+begin
+	viderSudoku = (viderOupas == "Vider le sudoku initial" ? 1 : 2)
+	SudokuInitial = HTML("""
 <script>
 //styleCSSpourSudokuCachéSousLeTitre!
 
+const defaultFixedValues = $(SudokuVideSiBesoin[viderSudoku])""" * raw"""
+			
 // const defaultFixedValues = [[0,0,0,7,0,0,0,0,0],[1,0,0,0,0,0,0,0,0],[0,0,0,4,3,0,2,0,0],[0,0,0,0,0,0,0,0,6],[0,0,0,5,0,9,0,0,0],[0,0,0,0,0,0,4,1,8],[0,0,0,0,8,1,0,0,0],[0,0,2,0,0,0,0,5,0],[0,4,0,0,0,0,3,0,0]];
 
 // const defaultFixedValues = [[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]];
 
-const defaultFixedValues = [[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,1,2,3,4,5,0,0,0],[0,2,0,0,3,0,6,0,0],[0,3,4,5,6,0,0,7,0],[0,6,0,0,7,0,8,0,0],[0,7,0,0,8,9,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]];
+// const defaultFixedValues = [[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,1,2,3,4,5,0,0,0],[0,2,0,0,3,0,6,0,0],[0,3,4,5,6,0,0,7,0],[0,6,0,0,7,0,8,0,0],[0,7,0,0,8,9,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]];
 
 // const defaultFixedValues = [[7,5,9,2,1,8,3,4,6],[3,4,8,6,9,7,2,1,5],[6,1,2,3,4,5,7,8,9],[9,2,7,8,3,1,6,5,4],[8,3,4,5,6,2,9,7,1],[1,6,5,9,7,4,8,2,3],[4,7,3,1,8,9,5,6,2],[5,9,1,7,2,6,4,3,8],[2,8,6,4,5,3,1,9,7]];
 
@@ -352,202 +564,27 @@ var sudokuViewReactiveValue = ({_sudoku:html, data}) => {
 
 // Inspiré en grande partie de https://observablehq.com/@filipermlh/ia-sudoku-ple1
 return sudokuViewReactiveValue(createSudokuHtml(defaultFixedValues));
-</script>"""
-
-# ╔═╡ 7cce8f50-2469-11eb-058a-099e8f6e3103
-md"## Sudoku initial ⤴ (modifiable) et le résultat :"
-
-# ╔═╡ 9abbcc70-2429-11eb-3278-f5f018fad179
-begin 
-	# styleCSSpourSudokuCachéSousLeTitre! ## juste la case caché en dessous du titre
-	matriceSudoku(listeJSudokuDeHTML) = hcat(listeJSudokuDeHTML...)
-	# matriceSudoku_(listeJSudokuDeHTML) = hcat(listeJSudokuDeHTML...)' # mieux mais..
-	matriceàlisteJS(matrice9x9) = [matrice9x9[:,i] for i in 1:9]
-	# listeJSudokuDeHTMLavec0 = fill(fill(0,9),9)
-	# matriceàlisteJS(matriceSudoku(listeJSudokuDeHTML)), listeJSudokuDeHTML
-	
-	function htmlSudoku(listede9élémentsquisontdeslistesde9chiffres😄)
-		if typeof(listede9élémentsquisontdeslistesde9chiffres😄)==String 
-			return listede9élémentsquisontdeslistesde9chiffres😄
-		else
-			return HTML(raw"""<script>
-		//styleCSSpourSudokuCachéSousLeTitre!
-		const createSudokuHtml = (values) => {
-		  const data = [];
-		  const htmlData = [];
-		  for(let i=0; i<9;i++){
-			let htmlRow = [];
-			data.push([]);
-			for(let j=0; j<9;j++){
-			  const valuesLine = values[i];
-			  const value = valuesLine?valuesLine[j]:0;
-				// j'ai sabré volontairement cette partie 😄
-			  const block = [Math.floor(i/3), Math.floor(j/3)];
-			  const isEven = ((block[0]+block[1])%2 === 0);
-			  const htmlCell = html`<td class='${isEven?"even-color":"odd-color"}'>${(value||'')}</td>`; // modifié légèrement
-			  data[i][j] = value||0;
-			  htmlRow.push(htmlCell);
-			}
-			htmlData.push(html`<tr>${htmlRow}</tr>`);
-		  }
-		  const _sudoku = html`<table>
-			  <tbody>${htmlData}</tbody>
-			</table><br>`  
-		  // return {_sudoku,data};
-		  return _sudoku;
-
-		}
-		// sinon : return createSudokuHtml(...)._sudoku;
-		return createSudokuHtml(""" *"$listede9élémentsquisontdeslistesde9chiffres😄"*""");
-		</script>""")
-		end
-	end
-	
-	kelcarré(lig,col) = 1+ 3*div(lig-1,3) + div(col-1,3) # n° du carré et mat9x9(i,j)
-	carré(i,j)= 1+div(i-1,3)*3:3+div(i-1,3)*3, 1+div(j-1,3)*3:3+div(j-1,3)*3
-	views(mat,i,j)= (view(mat,i,:), view(mat,:,j), view(mat, carré(i,j)...))
-	listecarré(mat)= [view(mat,carré(i,j)...) for i in 1:3:9 for j in 1:3:9]
-	chiffrePossible(mat,i,j)= setdiff(1:9,views(mat,i,j)...)
-	function vérifSudokuBon(mat)
-		lescarrés = listecarré(mat)
-		for x in 1:9
-			for i in 1:9
-				if count(==(x), mat[i,:])>1
-					return false
-				end
-			end
-			for j in 1:9
-				if count(==(x), mat[:,j])>1
-					return false
-				end
-			end
-			for c in lescarrés
-				if count(==(x), c)>1
-					return false
-				end
-			end
-		end
-		return true
-	end
-	# const nbToursMax = 3
-	
-	function trucquirésoudtoutSudoku(listeJSudokuDeHTML) 
-	nbTours = 1
-	nbToursTotal = 1
-	nbToursMax = 100_000_000 # pour éviter de tourner en rond... sécurité en plus
-	mS = matriceSudoku(listeJSudokuDeHTML)
-	lesZéros = [(i,j) for i in 1:9, j in 1:9 if mS[i,j]==0]
-	
-	listedechoix = []
-	listedancienneMat = []
-	listedesZéros = []
-	listeTours = []
-	nbChoixfait = 0
-	minChoixdesZéros = 10
-	allerAuChoixSuivant = false
-	choixPrécédent = false
-	choixAfaire = false
-	pasVudebug = true
-	choixAfaireFait = false
-	if listeJSudokuDeHTML==[[1,0,0,0,0,0,0,0,0],[0,2,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]]
-		return ([[1,3,4,2,5,6,7,8,9],[5,2,6,7,8,9,1,3,4],[7,8,9,1,3,4,2,5,6],[2,5,1,3,4,7,9,6,8],[8,6,3,5,9,1,4,2,7],[4,9,7,6,2,8,3,1,5],[3,4,5,8,7,2,6,9,1],[6,7,2,9,1,5,8,4,3],[9,1,8,4,6,3,5,7,2]],md"""**Pour résoudre ce sudoku :** il fallait faire **48 choix** et **24 tours** (si on savait à l'avance les bons choix), ce programme ayant fait rééllement *2 457 708 tours* !!! 
-				
-... j'ai un peu triché dans cette "IA" (en incluant ce cas) pour vous faire gagner du temps 😄""")
-	elseif vérifSudokuBon(mS)
-		# while pasVudebug && length(lesZéros)>0 && nbToursTotal <= nbToursMax
-		while length(lesZéros)>0 && nbToursTotal <= nbToursMax
-			çaNavancePas = true
-			if !allerAuChoixSuivant
-				for (key, (i,j)) in enumerate(lesZéros)
-					listechiffre = chiffrePossible(mS,i,j)
-					if listechiffre == []
-						if choixAfaireFait
-							allerAuChoixSuivant = true # choix pas bon ^^
-						# else ### pasVudebug = false
-						# 	return "bug", md"# bug... ce cas ne devrait pas arriver"
-						end
-					elseif length(listechiffre) == 1
-						mS[i,j]=listechiffre[1]
-						deleteat!(lesZéros, key) ## trop facile ^^
-						çaNavancePas = false
-					elseif çaNavancePas && length(listechiffre) < minChoixdesZéros
-						minChoixdesZéros = length(listechiffre)
-						choixAfaire = (i,j, 1, minChoixdesZéros, listechiffre)
-					end
-				end
-			end
-			if çaNavancePas || allerAuChoixSuivant
-				minChoixdesZéros = 10
-				if allerAuChoixSuivant
-					# if choixPrécédent==false || listedechoix==[]
-					# 	### pasVudebug = false
-					# 	return "bug", md"# bug... ce cas ne devrait pas arriver"
-					if choixPrécédent[3] < choixPrécédent[4] # suivant
-						(i,j, choix, l, lc) = choixPrécédent
-						choixPrécédent = (i,j, choix+1, l, lc)
-						listedechoix[nbChoixfait] = choixPrécédent
-						mS = copy(listedancienneMat[nbChoixfait])
-						nbTours = listeTours[nbChoixfait]
-						allerAuChoixSuivant = false
-						mS[i,j] = lc[choix+1]
-						lesZéros = copy(listedesZéros[nbChoixfait])
-					# elseif length(listedechoix) < 2 # pas de bol
-					# 	# pasVudebug = false
-					# 	return "bug", md"# bug... ce cas ne devrait pas arriver"
-					else # il faut revenir d'un cran dans la liste historique
-						deleteat!(listedechoix, nbChoixfait)
-						deleteat!(listedancienneMat, nbChoixfait)
-						deleteat!(listedesZéros, nbChoixfait)
-						deleteat!(listeTours, nbChoixfait)
-						nbChoixfait -= 1
-						choixPrécédent = listedechoix[nbChoixfait]
-						mS = copy(listedancienneMat[nbChoixfait])
-						lesZéros = copy(listedesZéros[nbChoixfait])
-						nbTours = listeTours[nbChoixfait]
-					end
-				else # nouveau choix
-					choixAfaireFait = true
-					push!(listedechoix, choixAfaire) # sauf erreur, pas de copie
-					push!(listedancienneMat , copy(mS)) # copie pour pas bouger
-					filter!(!=(choixAfaire[1:2]), lesZéros)
-					push!(listedesZéros , copy(lesZéros)) # copie pour pas bouger
-					push!(listeTours, nbTours-1)
-					nbChoixfait += 1
-					mS[choixAfaire[1:2]...] = choixAfaire[5][1]
-					nbTours = nbTours-1
-					choixPrécédent = choixAfaire
-				end
-			end	
-			nbTours += 1
-			nbToursTotal += 1
-		end
-	else return ("Merci de corriger votre Sudoku : chiffres en double", md"""# Merci de revoir votre sudoku, il n'est pas conforme : 
-			
-			En effet, il doit y avoir au moins sur une ligne ou colonne ou carré un chiffre en double ! 😄""")
-	end
-	# return matriceàlisteJS(mS') ## si vous utilisez : matriceSudoku_
-	return (matriceàlisteJS(mS), md"**Pour résoudre ce sudoku :** il a fallu faire **$nbChoixfait choix** et **$nbTours tours** (si on savait à l'avance les bons choix), ce programme ayant fait rééllement *$nbToursTotal tours* !!! 😃")
-	# end
-	end
-	
-	############### Package à ajouter pour le mode Sombre ####################
-	# import Pkg; Pkg.add(url="https://github.com/Pocket-titan/DarkMode");   #
-	# import DarkMode; shiftetentréePourremettreEnSombre = DarkMode.enable() #
-	
-	# shiftetentréePourremettreEnSombre # si souci de couleur, ceci permet de remettre en DarkMode ou mode Sombre -> merci de faire Maj. (=flèche vers le haut) et Entrée en même temps pour le relancer si besoin..
-end;
-
-# ╔═╡ 4c810c30-239f-11eb-09b6-cdc93fb56d2c
-sudokuRésolu12 = trucquirésoudtoutSudoku(listeJSudokuDeHTML); sudokuRésolu = htmlSudoku(sudokuRésolu12[1])
+</script>""")
+	@bind listeJSudokuDeHTML SudokuInitial
+end
 
 # ╔═╡ b2cd0310-2663-11eb-11d4-49c8ce689142
-sudokuRésolu12[2] # La petite explication, bon vous m'excuserez si vous faites un seul tour (et non "tours" ^^) et si vous avez un "bug"... je ne sais pas comment vous avez fait ;)
+sudokuRésolu12 = trucquirésoudtoutSudoku(listeJSudokuDeHTML); sudokuRésolu12[2] # La petite explication, bon vous m'excuserez si vous faites un seul tour (et non "tours" ^^) et si vous avez un "bug"... je ne sais pas comment vous avez fait ;)
+
+# ╔═╡ bba0b550-2784-11eb-2f58-6bca9b1260d0
+ @bind bloop puces(["Cacher le résultat","Voir le résultat"],"Voir le résultat")
+
+# ╔═╡ 4c810c30-239f-11eb-09b6-cdc93fb56d2c
+sudokuRésolu = bloop=="Cacher le résultat" ? md"""# La solution du sudoku est caché pour le moment suivant votre souhait...
+Bonne chance, sinon, merci de cocher ci-dessus : " Voir le résultat " """ : htmlSudoku(sudokuRésolu12[1])
 
 # ╔═╡ Cell order:
 # ╟─96d2d3e0-2133-11eb-3f8b-7350f4cda025
 # ╟─43ec2840-239d-11eb-075a-071ac0d6f4d4
+# ╟─caf45fd0-2797-11eb-2af5-e14c410d5144
 # ╟─a038b5b0-23a1-11eb-021d-ef7de773ef0e
 # ╟─7cce8f50-2469-11eb-058a-099e8f6e3103
-# ╟─4c810c30-239f-11eb-09b6-cdc93fb56d2c
 # ╟─b2cd0310-2663-11eb-11d4-49c8ce689142
+# ╟─bba0b550-2784-11eb-2f58-6bca9b1260d0
+# ╟─4c810c30-239f-11eb-09b6-cdc93fb56d2c
 # ╟─9abbcc70-2429-11eb-3278-f5f018fad179
