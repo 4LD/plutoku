@@ -509,8 +509,7 @@ const createSudokuHtml = (values) => {
         type='text'
         data-row='${i}'
         data-col='${j}'
-        max='9' 
-        min='1' 
+        maxlength='1' 
         value='${(value||'')}'
       >`;
       const block = [Math.floor(i/3), Math.floor(j/3)];
@@ -542,20 +541,53 @@ var sudokuViewReactiveValue = ({_sudoku:html, data}) => {
     input.addEventListener('change',(e) => {
       const i = e.target.getAttribute('data-row');
       const j = e.target.getAttribute('data-col');
-      const val = parseInt(e.target.value);
+      const val = e.target.value //parseInt(e.target.value);
       
       if(Number.isNaN(val)){
         data[i][j] = 0;
         e.target.value = "";
       }else if(val <= 9 && val >=1){
-        data[i][j] = val;
+        data[i][j] = parseInt(val);
       } else {
-        e.target.value = data[i][j] > 0 ? data[i][j] : '';
+		data[i][j] = 0;
+        e.target.value = "";
+        // e.target.value = data[i][j] > 0 ? data[i][j] : '';
       }
       
       html.dispatchEvent(new Event('input'));
     })
     
+		
+			// Ajout par Alexis
+	input.addEventListener('keyup',(e) => {
+		
+		//var target = e.srcElement || e.target;
+		var target = e.target;
+    	var maxLength = 1; //parseInt(target.attributes["maxlength"].value, 10);
+    var myLength = target.value.length;
+    if (myLength >= 1) {
+        if (e.target.parentElement.nextElementSibling == null) {
+		var next = e.target.parentElement.parentElement.nextElementSibling.childNodes[0].childNodes[0]
+		} else {
+		var next = e.target.parentElement.nextElementSibling.childNodes[0]
+		}
+		next.focus();
+    }
+    // Move to previous field if empty (user pressed backspace)
+    else if (myLength === 0) {
+        if (e.target.parentElement.previousElementSibling == null) {
+		var préc = e.target.parentElement.parentElement.previousElementSibling.lastChild.childNodes[0]
+		} else {
+		var préc = e.target.parentElement.previousElementSibling.childNodes[0]
+		}
+		préc.selectionStart = préc.selectionEnd = préc.value.length;
+		préc.focus();
+		
+    }
+		})
+		
+		
+		
   })
   html.dispatchEvent(new Event('input'))
   return html;
@@ -575,7 +607,7 @@ sudokuRésolu12 = trucquirésoudtoutSudoku(listeJSudokuDeHTML); sudokuRésolu12[
  @bind bloop puces(["Cacher le résultat","Voir le résultat"],"Voir le résultat")
 
 # ╔═╡ 4c810c30-239f-11eb-09b6-cdc93fb56d2c
-sudokuRésolu = bloop=="Cacher le résultat" ? md"""# La solution du sudoku est caché pour le moment suivant votre souhait...
+sudokuRésolu = bloop=="Cacher le résultat" ? md"""# La solution du sudoku est cachée pour le moment suivant votre souhait...
 Bonne chance, sinon, merci de cocher ci-dessus : " Voir le résultat " """ : htmlSudoku(sudokuRésolu12[1])
 
 # ╔═╡ Cell order:
