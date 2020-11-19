@@ -316,9 +316,10 @@ begin
 	chiffrePossible(mat,i,j)= setdiff(1:9,views(mat,i,j)...)
 	function testdebidouille(mat,bidouille=true) # (mat',bidouille=true)
 		test = bidouille # pour tout résoudre en moins de 1 secondes (sauf erreur)
-		lig = 1
-		while test && lig <4
-			test = test && mat[7,lig] != 1
+		lig = 2
+		test = test && mat[7,1] != 1
+		while test && lig <3
+			test = test && mat[7,lig] != 1 && mat[1,lig] == 0 && mat[9,lig] == 0
 			lig +=1
 		end
 		while test && lig <10
@@ -334,7 +335,7 @@ begin
 				test = test && mat[:,lig] == [0,0,0,0, 0, 0,0,0,0]
 				lig +=1
 			end
-			if !test || mat[7,lig] == 1
+			if !test || mat[1,lig] != 0 || mat[9,lig] != 0 || mat[7,lig] == 1
 				return false
 			end
 			lig = 6
@@ -351,7 +352,7 @@ begin
 					test = test && mat[:,lig] == [0,0,0,0, 0, 0,0,0,0]
 					lig +=1
 				end
-				test = test && mat[7,lig] != 1 && mat[:,9] == [0,0,0,0, 0, 0,0,0,0]
+				test = test && mat[1,8] == 0 && mat[9,8] == 0 && mat[7,lig] != 1 && mat[:,9] == [0,0,0,0, 0, 0,0,0,0]
 				return test
 			end
 		end
@@ -385,10 +386,14 @@ begin
 	function trucquirésoudtoutSudoku(listeJSudokuDeHTML, nbToursMax = 31009) 
 	nbTours = 1
 	nbToursTotal = 1
+	préChoix = 0
 	# nbToursMax = 10_000_000 # pour éviter de tourner en rond... sécurité en plus
 	mS = matriceSudoku(listeJSudokuDeHTML)
 	if testdebidouille(mS) # testdebidouille(mS, false) si on en veut aucune ^^
+			préChoix = 1 # pour compter la bidouille !
 			mS[7,7] = 1
+			nbTours += 1
+			nbToursTotal += 1
 	end
 	lesZéros = [(i,j) for i in 1:9, j in 1:9 if mS[i,j]==0]
 	
@@ -437,7 +442,9 @@ begin
 					if choixPrécédent==false || listedechoix==[]
 						### pasVudebug = false
 						return " ⚡ Sudoku impossible", md"""# ⚡ Sudoku impossible à résoudre... mais impossible de me piéger 😜
-							Si ce n'est pas le cas, revérifier le Sudoku initial, car celui-ci n'a pas de solution possible (par exemple : si une case attend un 1 (en ligne), mais aussi un 9 (en colonne) ← aucune solution, car on ne peut pas mettre à la fois 1 et 9 dans une seule case, c'est donc impossible)."""
+							Si ce n'est pas le cas, revérifier le Sudoku initial, car celui-ci n'a pas de solution possible.
+							
+							Par exemple : si une case attend uniquement un 1 (en ligne), mais aussi un 9 (en colonne) ← aucune solution, car on ne peut pas mettre à la fois 1 et 9 dans une seule case, c'est donc impossible à résoudre."""
 					elseif choixPrécédent[3] < choixPrécédent[4] # suivant
 						(i,j, choix, l, lc) = choixPrécédent
 						choixPrécédent = (i,j, choix+1, l, lc)
@@ -450,7 +457,9 @@ begin
 					elseif length(listedechoix) < 2 # pas de bol
 						# pasVudebug = false
 						return " ⚡ Sudoku impossible", md"""# ⚡ Sudoku impossible à résoudre... mais impossible de me piéger 😜
-							Si ce n'est pas le cas, revérifier le Sudoku initial, car celui-ci n'a pas de solution possible (par exemple : si une case attend un 1 (en ligne), mais aussi un 9 (en colonne) ← aucune solution, car on ne peut pas mettre à la fois 1 et 9 dans une seule case, c'est donc impossible)."""
+							Si ce n'est pas le cas, revérifier le Sudoku initial, car celui-ci n'a pas de solution possible.
+							
+							Par exemple : si une case attend uniquement un 1 (en ligne), mais aussi un 9 (en colonne) ← aucune solution, car on ne peut pas mettre à la fois 1 et 9 dans une seule case, c'est donc impossible à résoudre."""
 					else # il faut revenir d'un cran dans la liste historique
 						deleteat!(listedechoix, nbChoixfait)
 						deleteat!(listedancienneMat, nbChoixfait)
@@ -486,7 +495,7 @@ begin
 			En effet, malgrès le fait que ce *Plutoku* est parfait 😄, certains cas (assez limités bien sûr) peuvent mettre du temps (moins de 2 minutes) que je vous épargne ;)"""
 	else
 		# return matriceàlisteJS(mS') ## si vous utilisez : matriceSudoku_
-		return (matriceàlisteJS(mS), md"**Pour résoudre ce sudoku :** il a fallu faire **$nbChoixfait choix** et **$nbTours tours** (si on savait à l'avance les bons choix), ce programme ayant fait rééllement *$nbToursTotal tours* !!! 😃")
+		return (matriceàlisteJS(mS), md"**Pour résoudre ce sudoku :** il a fallu faire **$(nbChoixfait + préChoix) choix** et **$nbTours tours** (si on savait à l'avance les bons choix), ce programme ayant fait rééllement *$nbToursTotal tours* !!! 😃")
 	end
 	end
 ######################################################################################
@@ -522,7 +531,7 @@ end
 end;
 
 # ╔═╡ caf45fd0-2797-11eb-2af5-e14c410d5144
-@bind viderOupas puces(["Vider le sudoku initial","Le sudoku initial ;)"],"Le sudoku initial ;)")
+@bind viderOupas puces(["Vider le sudoku initial","Le sudoku initial ;)"],"Le sudoku initial ;)"; idPuces="ModifierInit")
 
 # ╔═╡ a038b5b0-23a1-11eb-021d-ef7de773ef0e
 begin
@@ -660,7 +669,7 @@ end
 sudokuRésolu12 = trucquirésoudtoutSudoku(listeJSudokuDeHTML); sudokuRésolu12[2] # La petite explication, bon vous m'excuserez si vous faites un seul tour (et non "tours" ^^) et si vous avez un "bug"... je ne sais pas comment vous avez fait ;)
 
 # ╔═╡ bba0b550-2784-11eb-2f58-6bca9b1260d0
- @bind bloop puces(["Cacher le résultat","Voir le résultat"],"Voir le résultat")
+ @bind bloop puces(["Cacher le résultat","Voir le résultat"],"Voir le résultat"; idPuces="CacherRésultat")
 
 # ╔═╡ 4c810c30-239f-11eb-09b6-cdc93fb56d2c
 sudokuRésolu = bloop=="Cacher le résultat" ? md"""# 🤐 La solution du sudoku est cachée pour le moment comme demandé...
