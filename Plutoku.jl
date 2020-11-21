@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.12.10
+# v0.12.11
 
 using Markdown
 using InteractiveUtils
@@ -260,6 +260,9 @@ td input{
 # Pour la vue HTML et ce style, cela est fortement inspiré de https://observablehq.com/@filipermlh/ia-sudoku-ple1
 # Bonus (non fait pour le moment) : Pour basculer entre plusieurs champs automatiquement si besoin : https://stackoverflow.com/a/15595732
 
+# ╔═╡ 81bbbd00-2c37-11eb-38a2-09eb78490a16
+md"""Si besoin dans cette session, le sudoku initial (modifié ou non) peut rester en mémoire en cliquant sur le bouton suivant : $(@bind bouton html"<input type=button style='margin-left: 10px;' value='Sudoku initial à garder ;)'>") """
+
 # ╔═╡ 7cce8f50-2469-11eb-058a-099e8f6e3103
 md"## Sudoku initial ⤴ (modifiable) et le résultat :"
 
@@ -272,13 +275,13 @@ begin
 	# listeJSudokuDeHTMLavec0 = fill(fill(0,9),9)
 	# matriceàlisteJS(matriceSudoku(listeJSudokuDeHTML)), listeJSudokuDeHTML
 	
-	function htmlSudoku(listede9élémentsquisontdeslistesde9chiffres😄)
-		if typeof(listede9élémentsquisontdeslistesde9chiffres😄)==String 
-			return listede9élémentsquisontdeslistesde9chiffres😄
+	function htmlSudoku(liste9x9,liste9x9ini) #,liste9x9ini=liste9x9)
+		if typeof(liste9x9)==String 
+			return liste9x9
 		else
 			return HTML(raw"""<script>
 		//styleCSSpourSudokuCachéSousLeTitre!
-		const createSudokuHtml = (values) => {
+		const createSudokuHtml = (values, values_ini) => {
 		  const data = [];
 		  const htmlData = [];
 		  for(let i=0; i<9;i++){
@@ -287,10 +290,11 @@ begin
 			for(let j=0; j<9;j++){
 			  const valuesLine = values[i];
 			  const value = valuesLine?valuesLine[j]:0;
+				const isInitial = values_ini[i][j]>0;
 				// j'ai sabré volontairement cette partie 😄
 			  const block = [Math.floor(i/3), Math.floor(j/3)];
 			  const isEven = ((block[0]+block[1])%2 === 0);
-			  const htmlCell = html`<td class='${isEven?"even-color":"odd-color"}'>${(value||'')}</td>`; // modifié légèrement
+			  const htmlCell = html`<td ${isInitial?"style='font-weight: bold;color:#5668a4'":""} class='${isEven?"even-color":"odd-color"}'>${(value||'')}</td>`; // modifié légèrement
 			  data[i][j] = value||0;
 			  htmlRow.push(htmlCell);
 			}
@@ -304,7 +308,7 @@ begin
 
 		}
 		// sinon : return createSudokuHtml(...)._sudoku;
-		return createSudokuHtml(""" *"$listede9élémentsquisontdeslistesde9chiffres😄"*""");
+		return createSudokuHtml(""" *"$liste9x9"*", "*"$liste9x9ini"*""");
 		</script>""")
 		end
 	end
@@ -526,12 +530,17 @@ end
 
 	SudokuVideSiBesoin=[[[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]],
 						[[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,1,2,3,4,5,0,0,0],[0,2,0,0,3,0,6,0,0],[0,3,4,5,6,0,0,7,0],[0,6,0,0,7,0,8,0,0],[0,7,0,0,8,9,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]],
-						[[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,1,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]]] # le 3ème non visible est la bidouille ^^
+						[[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,1,2,3,4,5,0,0,0],[0,2,0,0,3,0,6,0,0],[0,3,4,5,6,0,0,7,0],[0,6,0,0,7,0,8,0,0],[0,7,0,0,8,9,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]],
+						[[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,1,2,3,4,5,0,0,0],[0,2,0,0,3,0,6,0,0],[0,3,4,5,6,0,0,7,0],[0,6,0,0,7,0,8,0,0],[0,7,0,0,8,9,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]],
+						[[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,1,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]]] # le 5ème non visible est la bidouille ^^
 	
 end;
 
 # ╔═╡ caf45fd0-2797-11eb-2af5-e14c410d5144
-@bind viderOupas puces(["Vider le sudoku initial","Le sudoku initial ;)"],"Le sudoku initial ;)"; idPuces="ModifierInit")
+let 
+	bouton # 
+	SudokuVideSiBesoin[2] = copy(SudokuVideSiBesoin[3]) # Sauvé et transféré
+end; @bind viderOupas puces(["Vider le sudoku initial","Le sudoku initial ;)"],"Le sudoku initial ;)"; idPuces="ModifierInit")
 
 # ╔═╡ a038b5b0-23a1-11eb-021d-ef7de773ef0e
 begin
@@ -666,19 +675,20 @@ return sudokuViewReactiveValue(createSudokuHtml(defaultFixedValues));
 end
 
 # ╔═╡ b2cd0310-2663-11eb-11d4-49c8ce689142
-sudokuRésolu12 = trucquirésoudtoutSudoku(listeJSudokuDeHTML); sudokuRésolu12[2] # La petite explication, bon vous m'excuserez si vous faites un seul tour (et non "tours" ^^) et si vous avez un "bug"... je ne sais pas comment vous avez fait ;)
+SudokuVideSiBesoin[3] = listeJSudokuDeHTML; sudokuRésolu12 = trucquirésoudtoutSudoku(listeJSudokuDeHTML); sudokuRésolu12[2] # La petite explication, bon vous m'excuserez si vous faites un seul tour (et non "tours" ^^) et si vous avez un "bug"... je ne sais pas comment vous avez fait ;)
 
 # ╔═╡ bba0b550-2784-11eb-2f58-6bca9b1260d0
  @bind bloop puces(["Cacher le résultat","Voir le résultat"],"Voir le résultat"; idPuces="CacherRésultat")
 
 # ╔═╡ 4c810c30-239f-11eb-09b6-cdc93fb56d2c
 sudokuRésolu = bloop=="Cacher le résultat" ? md"""# 🤐 La solution du sudoku est cachée pour le moment comme demandé...
-Bonne chance ! Sinon, merci de recocher ci-dessus : " Voir le résultat " """ : htmlSudoku(sudokuRésolu12[1])
+Bonne chance ! Sinon, merci de recocher ci-dessus : " Voir le résultat " """ : htmlSudoku(sudokuRésolu12[1],listeJSudokuDeHTML)
 
 # ╔═╡ Cell order:
 # ╟─96d2d3e0-2133-11eb-3f8b-7350f4cda025
 # ╟─43ec2840-239d-11eb-075a-071ac0d6f4d4
 # ╟─caf45fd0-2797-11eb-2af5-e14c410d5144
+# ╟─81bbbd00-2c37-11eb-38a2-09eb78490a16
 # ╟─a038b5b0-23a1-11eb-021d-ef7de773ef0e
 # ╟─7cce8f50-2469-11eb-058a-099e8f6e3103
 # ╟─b2cd0310-2663-11eb-11d4-49c8ce689142
