@@ -114,7 +114,7 @@ begin
 	
 ######################################################################################
   # function trucquirésoudtoutSudoku(listeJSudokuDeHTML, nbToursMax = 10_000_000)
-  function trucquirésoudtoutSudoku(listeJSudokuDeHTML, nbToursMax = 131_009) 
+  function trucquirésoudtoutSudoku(listeJSudokuDeHTML, nbToursMax = 1003, nbRécursionsMax = 26, nbRécursions = 0) 
 	nbTours = 1 # cela compte les tours si choisi bien (avec un léger décalage)
 	nbToursTotal = 1 # le nombre qui ce programme a réellement fait
 	
@@ -206,10 +206,12 @@ begin
 		else return "🧐 Merci de corriger ce Sudoku ;)", md"""# 🧐 Merci de revoir ce sudoku, il n'est pas conforme : 
 			En effet, il doit y avoir au moins sur une ligne, ou colonne, ou carré un chiffre en double ou au mauvais endroit ! 😄"""
 	end
-	if nbToursTotal > nbToursMax
-			"👍 Merci de mettre un peu plus de chiffres ;)", md"""# 👍 Merci de mettre plus de chiffres ;) 
+	if nbRécursions > nbRécursionsMax
+		return "👍 Merci de mettre un peu plus de chiffres ;)", md"""# 👍 Merci de mettre plus de chiffres ;) 
 			
-			En effet, malgrès le fait que ce *Plutoku* est parfait 😄, certains cas (assez limités bien sûr) peuvent mettre du temps (moins de 2 minutes) que je vous épargne ;)"""
+			En effet, malgrès le fait que ce *Plutoku* est quasi-parfait 😄, certains cas (assez limités bien sûr) peuvent mettre du temps (moins de 2 minutes) que je vous épargne ;)"""
+	elseif nbToursTotal > nbToursMax
+		return trucquirésoudtoutSudoku(listeJSudokuDeHTML, nbToursMax, nbRécursionsMax, nbRécursions+1) 
 	else
 		# return matriceàlisteJS(mS') ## si vous utilisez : matriceSudoku_
 		return (matriceàlisteJS(mS), md"**Pour résoudre ce sudoku :** il a fallu faire **$nbChoixfait choix** et **$nbTours tours** (si on savait à l'avance les bons choix), ce programme ayant fait rééllement *$nbToursTotal tours* !!! 😃")
@@ -220,7 +222,7 @@ begin
 end;
 
 # ╔═╡ 96d2d3e0-2133-11eb-3f8b-7350f4cda025
-md"# Résoudre un Sudoku par Alexis 😎" # v1.0 jeudi 03/12/2020
+md"# Résoudre un Sudoku par Alexis 😎" # v1.1 lundi 07/12/2020
 
 # ╔═╡ 43ec2840-239d-11eb-075a-071ac0d6f4d4
 styleCSSpourSudokuCachéSousLeTitre! = html"""
@@ -392,6 +394,9 @@ select{
 table{
   width:0 !important;
   height:0 !important;
+}
+pluto-output table {
+    border: medium hidden #000 !important;
 }
 
 tr {
@@ -573,8 +578,9 @@ SudokuVideSiBesoin[3] = listeJSudokuDeHTML; sudokuRésolu12 = trucquirésoudtout
  @bind voirOuPas puces(["Cacher le résultat","Voir le résultat"],"Voir le résultat"; idPuces="CacherRésultat")
 
 # ╔═╡ 4c810c30-239f-11eb-09b6-cdc93fb56d2c
-sudokuRésolu = voirOuPas=="Cacher le résultat" ? md"""# 🤐 La solution du sudoku est cachée pour le moment comme demandé...
-Bonne chance ! Sinon, merci de recocher ci-dessus : " Voir le résultat " """ : htmlSudoku(sudokuRésolu12[1],listeJSudokuDeHTML)
+sudokuRésolu = voirOuPas=="Cacher le résultat" ? (typeof(sudokuRésolu12[1])==String ? md"""# 🤐 Le sudoku résolu est caché pour le moment comme demandé...
+⚡ Attention, sudoku initial à revoir ! Même " Voir le résultat " ne le donnera pas 😜 """ : md"""# 🤐 Le sudoku résolu est caché pour le moment comme demandé...
+Bonne chance ! Sinon, merci de recocher ci-dessus : " Voir le résultat " """) : htmlSudoku(sudokuRésolu12[1],listeJSudokuDeHTML)
 
 # ╔═╡ Cell order:
 # ╟─96d2d3e0-2133-11eb-3f8b-7350f4cda025
