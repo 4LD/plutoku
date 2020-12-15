@@ -14,7 +14,7 @@ Voilà ! il faut cependant être un peu patient, le temps du lancement (de 20 se
 > **Deuxième, un peu plus complexe :** 
 > Cliquer sur le lien https://mybinder.org/v2/gh/fonsp/pluto-on-binder/HEAD?urlpath=pluto
 > 
-> Cela va ouvrir *Pluto.jl* (via un *Binder*)... *cela peut prendre du temps... * 
+> Cela va ouvrir *Pluto.jl* (via un *Binder*)... *cela peut prendre du temps...* 
 > Puis dans *Pluto.jl*, ouvrir le **plutoku** en mettant dans `Open from file:` https://github.com/4LD/plutoku/blob/main/Plutoku.jl 
 > Enfin cliquer sur `Open` et vous pouvez résoudre des sudokus en modifiant le premier ;)
 > 
@@ -26,3 +26,5 @@ Voilà ! il faut cependant être un peu patient, le temps du lancement (de 20 se
 > puis lancer via `launch`... attendre... puis ouvrir le plutoku comme noté plus haut dans *Pluto.jl* 
 >
 > **Note :** si tu vois des messages d'erreurs, ne t'en fait pas, clique juste sur `OK` à chaque fois :)
+
+*Merci à Fons et l'équipe Julia* ;)
