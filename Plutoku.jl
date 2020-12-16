@@ -66,7 +66,7 @@ begin
 	</script>"""
 		inputs = ""
 		for item in liste
-			inputs *= """<input type="radio" id="$idPuces$item" name="$idPuces" value="$item" style="margin: 0 4px 0 0px;" $(item == valdéfaut ? "checked" : "")><label style="margin: 0 18px 0 0px;" for="$idPuces$item">$item</label>"""
+			inputs *= """<input type="radio" id="$idPuces$item" name="$idPuces" value="$item" style="margin: 0 4px 0 4px;" $(item == valdéfaut ? "checked" : "")><label style="margin: 0 18px 0 0px;" for="$idPuces$item">$item</label>"""
 		end
 		# for (item,valeur) in liste ### si liste::Array{Pair{String,String},1}
 		# 	inputs *= """<input type="radio" id="$idPuces$item" name="$idPuces" value="$item" style="margin: 0 4px 0 20px;" $(item == valdéfaut ? "checked" : "")><label for="$idPuces$item">$valeur</label>"""
@@ -125,7 +125,6 @@ begin
 	
 	listedechoix = []
 	listedancienneMat = []
-	lesClésZérosàSuppr = Int[]
 	listedesZéros = []
 	listeTours = Int[]
 	nbChoixfait = 0
@@ -143,6 +142,7 @@ begin
 			çaNavancePas = true # Permet de voir si rien ne se remplit en un tour
 			nbTours += 1
 			nbToursTotal += 1
+			lesClésZérosàSuppr=Int[]
 			if !allerAuChoixSuivant
 				for (key, (i,j)) in enumerate(lesZéros)
 					listechiffre = chiffrePossible(mS,i,j)
@@ -160,13 +160,12 @@ begin
 					end
 				end
 			end
-			if !çaNavancePas
+			if !çaNavancePas && !allerAuChoixSuivant
 				deleteat!(lesZéros, lesClésZérosàSuppr)
-				lesClésZérosàSuppr=Int[]
 			else # if çaNavancePas || allerAuChoixSuivant # Pour avancer autrement ^^
 				minChoixdesZéros = 10
 				if allerAuChoixSuivant # Si le choix en cours n'est pas bon
-					if choixPrécédent==false || listedechoix==[] # pas de bol
+					if choixPrécédent==false || listedechoix==[] # pas de bol hein
 						return " ⚡ Sudoku impossible", md"""# ⚡ Sudoku impossible à résoudre... mais impossible de me piéger 😜
 							Si ce n'est pas le cas, revérifier le Sudoku initial, car celui-ci n'a pas de solution possible.
 							
@@ -180,7 +179,7 @@ begin
 						allerAuChoixSuivant = false
 						mS[i,j] = lc[choix+1]
 						lesZéros = copy(listedesZéros[nbChoixfait])
-					elseif length(listedechoix) < 2 # pas de bol²
+					elseif length(listedechoix) < 2 # pas 2 bol
 						return " ⚡ Sudoku impossible", md"""# ⚡ Sudoku impossible à résoudre... mais impossible de me piéger 😜
 							Si ce n'est pas le cas, revérifier le Sudoku initial, car celui-ci n'a pas de solution possible.
 							
@@ -223,7 +222,7 @@ begin
 	elseif nbToursTotal > nbToursMax
 		return trucquirésoudtoutSudoku(listeJSudokuDeHTML, nbToursMax, nbRécursionsMax, nbRécursions+1) 
 	else
-		# return matriceàlisteJS(mS') ## si vous utilisez : matriceSudoku_
+		# return matriceàlisteJS(mS') ## si vous utilisez : matriceSudoku'
 		return (matriceàlisteJS(mS), md"**Pour résoudre ce sudoku :** il a fallu faire **$nbChoixfait choix** et **$nbTours $((nbTours>1) ? :tours : :tour)** (si on savait à l'avance les bons choix), ce programme ayant fait rééllement _**$nbToursTotal $((nbToursTotal>1) ? :tours : :tour) au total**_ !!! 😃")
 	end
   end
@@ -232,10 +231,11 @@ begin
 end;
 
 # ╔═╡ 96d2d3e0-2133-11eb-3f8b-7350f4cda025
-md"# Résoudre un Sudoku par Alexis 😎" # v1.2 mardi 15/12/2020
+md"# Résoudre un Sudoku par Alexis 😎" # v1.2 mercredi 16/12/2020
 
 # Pour la vue HTML et le style CSS, cela est fortement inspiré de https://github.com/Pocket-titan/DarkMode et pour le sudoku https://observablehq.com/@filipermlh/ia-sudoku-ple1
 # Pour basculer entre plusieurs champs automatiquement via JavaScript, merci à https://stackoverflow.com/a/15595732
+# Pour info, styleCSSpourSudokuCachéSousLeTitre! :)
 
 # Ce "plutoku" est visible sur https://github.com/4LD/plutoku
 
@@ -588,15 +588,15 @@ end
 md"## Sudoku initial ⤴ (modifiable) et sa solution :"
 
 # ╔═╡ b2cd0310-2663-11eb-11d4-49c8ce689142
-SudokuVideSiBesoin[3] = listeJSudokuDeHTML; sudokuRésolu12 = trucquirésoudtoutSudoku(listeJSudokuDeHTML); sudokuRésolu12[2] # La petite explication, si vous avez un "bug"... je ne sais pas comment vous avez fait ;)
+SudokuVideSiBesoin[3] = listeJSudokuDeHTML; sudokuSolution = trucquirésoudtoutSudoku(listeJSudokuDeHTML); sudokuSolution[2] # La petite explication, si vous avez un "bug"... je ne sais pas comment vous avez fait ;)
 
 # ╔═╡ bba0b550-2784-11eb-2f58-6bca9b1260d0
  @bind voirOuPas puces(["Cacher le résultat","Voir le résultat"],"Voir le résultat"; idPuces="CacherRésultat")
 
 # ╔═╡ 4c810c30-239f-11eb-09b6-cdc93fb56d2c
-sudokuRésolu = voirOuPas=="Cacher le résultat" ? (typeof(sudokuRésolu12[1])==String ? md"""# 🤐 Le sudoku résolu est caché pour le moment comme demandé...
+sudokuRésolu = voirOuPas=="Cacher le résultat" ? (typeof(sudokuSolution[1])==String ? md"""# 🤐 Le sudoku résolu est caché pour le moment comme demandé...
 ⚡ Attention, sudoku initial à revoir ! Même "Voir le résultat" ne le donnera pas 😜 """ : md"""# 🤐 Le sudoku résolu est caché pour le moment comme demandé...
-Bonne chance ! Sinon, merci de recocher ci-dessus : "Voir le résultat" """) : htmlSudoku(sudokuRésolu12[1],listeJSudokuDeHTML)
+Bonne chance ! Sinon, merci de recocher ci-dessus : "Voir le résultat" """) : htmlSudoku(sudokuSolution[1],listeJSudokuDeHTML)
 
 # ╔═╡ Cell order:
 # ╟─96d2d3e0-2133-11eb-3f8b-7350f4cda025
