@@ -13,15 +13,17 @@ macro bind(def, element)
     end
 end
 
-# ╔═╡ 9abbcc70-2429-11eb-3278-f5f018fad179
+# ╔═╡ 43ec2840-239d-11eb-075a-071ac0d6f4d4
 begin 
+	# styleCSSpourSudokuCachéSousLeTitre! ## voir tout en bas
+	# définitionSudokuInitial!(...) ## caché dans la case suivante ^^ (case n°3 ;)
+	using Random: shuffle # Astuce pour être encore plus rapide = Fast & Furious
+	
 	SudokuVideSiBesoin=[[[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]],
 						[[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,1,2,3,4,5,0,0,0],[0,2,0,0,3,0,6,0,0],[0,3,4,5,6,0,0,7,0],[0,6,0,0,7,0,8,0,0],[0,7,0,0,8,9,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]],
 						[[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,1,2,3,4,5,0,0,0],[0,2,0,0,3,0,6,0,0],[0,3,4,5,6,0,0,7,0],[0,6,0,0,7,0,8,0,0],[0,7,0,0,8,9,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]],
-						[[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,1,2,3,4,5,0,0,0],[0,2,0,0,3,0,6,0,0],[0,3,4,5,6,0,0,7,0],[0,6,0,0,7,0,8,0,0],[0,7,0,0,8,9,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]]] # En triple pour garder mes initiales ^^
+						[[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,1,2,3,4,5,0,0,0],[0,2,0,0,3,0,6,0,0],[0,3,4,5,6,0,0,7,0],[0,6,0,0,7,0,8,0,0],[0,7,0,0,8,9,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]]] # En triple pour garder mes initial(e)s ^^
 	
-	# styleCSSpourSudokuCachéSousLeTitre! ## juste la case caché en dessous du titre
-	using Random: shuffle # Astuce pour être encore plus rapide
 	matriceSudoku(listeJSudokuDeHTML) = hcat(listeJSudokuDeHTML...) #' en pinaillant
 	matriceàlisteJS(matrice9x9) = [matrice9x9[:,i] for i in 1:9] # I will be back !
 	# matriceàlisteJS(matriceSudoku(listeJSudokuDeHTML)) == listeJSudokuDeHTML
@@ -29,9 +31,9 @@ begin
 		
 	kelcarré(lig,col) = 1+ 3*div(lig-1,3) + div(col-1,3) # n° du carré et mat9x9(i,j)
 	carré(i,j)= 1+div(i-1,3)*3:3+div(i-1,3)*3, 1+div(j-1,3)*3:3+div(j-1,3)*3 # permet de fabriquer les filtres pour ne regarder qu'un seul carré
-	views(mat,i,j)= (view(mat,i,:), view(mat,:,j), view(mat, carré(i,j)...)) # liste des chiffres possible par lignes, colonnes et carrés
+	vues(mat,i,j)= (view(mat,i,:), view(mat,:,j), view(mat, carré(i,j)...)) # liste des chiffres possible par lignes, colonnes et carrés
 	listecarré(mat)= [view(mat,carré(i,j)...) for i in 1:3:9 for j in 1:3:9] # La liste de tous les carrés du sudoku
-	chiffrePossible(mat,i,j)= setdiff(1:9,views(mat,i,j)...) # Pour une case en i,j
+	chiffrePossible(mat,i,j)= setdiff(1:9,vues(mat,i,j)...) # Pour une case en i,j
 
 	function vérifSudokuBon(mat)
 		lescarrés = listecarré(mat)
@@ -66,7 +68,7 @@ begin
 	</script>"""
 		inputs = ""
 		for item in liste
-			inputs *= """<input type="radio" id="$idPuces$item" name="$idPuces" value="$item" style="margin: 0 4px 0 4px;" $(item == valdéfaut ? "checked" : "")><label style="margin: 0 18px 0 0px;" for="$idPuces$item">$item</label>"""
+			inputs *= """<div style="display:inline-block;"><input type="radio" id="$idPuces$item" name="$idPuces" value="$item" style="margin: O 4px 0 4px;" $(item == valdéfaut ? "checked" : "")><label style="margin: 0 18px 0 2px;" for="$idPuces$item">$item</label></div>"""
 		end
 		# for (item,valeur) in liste ### si liste::Array{Pair{String,String},1}
 		# 	inputs *= """<input type="radio" id="$idPuces$item" name="$idPuces" value="$item" style="margin: 0 4px 0 20px;" $(item == valdéfaut ? "checked" : "")><label for="$idPuces$item">$valeur</label>"""
@@ -116,11 +118,11 @@ begin
 	
 ######################################################################################
   # function trucquirésoudtoutSudoku(listeJSudokuDeHTML, nbToursMax = 10_000_000)
-  function trucquirésoudtoutSudoku(listeJSudokuDeHTML, nbToursMax = 1003, nbRécursionsMax = 26, nbRécursions = 0) 
+  function trucquirésoudtoutSudoku(listeJSudokuDeHTML, nbToursMax = 203, nbRécursionsMax = 26, nbRécursions = 0) 
 	nbTours = 0 # cela compte les tours si choisi bien (avec un léger décalage)
 	nbToursTotal = 0 # le nombre qui ce programme a réellement fait
 	
-	mS = matriceSudoku(listeJSudokuDeHTML) # Converti en vrai matrice Julia
+	mS::Array{Int64,2} = matriceSudoku(listeJSudokuDeHTML) # Converti en vrai matrice
 	lesZéros = shuffle([(i,j) for i in 1:9, j in 1:9 if mS[i,j]==0]) # Fast & Furious
 	
 	listedechoix = []
@@ -136,7 +138,7 @@ begin
 # 	if listeJSudokuDeHTML==[[1,0,0,0,0,0,0,0,0],[0,2,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]]
 # 		return ([[1,3,4,2,5,6,7,8,9],[5,2,6,7,8,9,1,3,4],[7,8,9,1,3,4,2,5,6],[2,5,1,3,4,7,9,6,8],[8,6,3,5,9,1,4,2,7],[4,9,7,6,2,8,3,1,5],[3,4,5,8,7,2,6,9,1],[6,7,2,9,1,5,8,4,3],[9,1,8,4,6,3,5,7,2]],md"""**Pour résoudre ce sudoku :** il fallait faire **48 choix** et **24 tours** (si on savait à l'avance les bons choix), ce programme ayant fait rééllement *2 457 708 tours* !!! 
 				
-# 		... j'ai un peu triché dans cette "IA" (en incluant ce cas) pour vous faire gagner du temps 😄""") ### <-- Vieux bug, évité grace à Fast & Furious (cf. plus haut)
+# 		... j'ai un peu triché dans cette "IA" (en incluant ce cas) pour vous faire gagner du temps 😄""") ## <- Lenteurs évitées grace à Fast & Furious (cf. plus haut)
 	if vérifSudokuBon(mS)
 		while length(lesZéros)>0 && nbToursTotal <= nbToursMax
 			çaNavancePas = true # Permet de voir si rien ne se remplit en un tour
@@ -160,9 +162,7 @@ begin
 					end
 				end
 			end
-			if !çaNavancePas && !allerAuChoixSuivant
-				deleteat!(lesZéros, lesClésZérosàSuppr)
-			else # if çaNavancePas || allerAuChoixSuivant # Pour avancer autrement ^^
+			if çaNavancePas || allerAuChoixSuivant # Pour avancer autrement ^^
 				minChoixdesZéros = 10
 				if allerAuChoixSuivant # Si le choix en cours n'est pas bon
 					if choixPrécédent==false || listedechoix==[] # pas de bol hein
@@ -207,7 +207,9 @@ begin
 					nbChoixfait += 1
 					mS[choixAfaire[1:2]...] = choixAfaire[5][1]
 					choixPrécédent = choixAfaire
-				end
+				end 
+				else # !çaNavancePas && !allerAuChoixSuivant ## Tout va bien ici
+				deleteat!(lesZéros, lesClésZérosàSuppr) # On retire ceux remplis
 			end	
 		end
 		else return "🧐 Merci de corriger ce Sudoku ;)", md"""# 🧐 Merci de revoir ce sudoku, il n'est pas conforme : 
@@ -224,27 +226,12 @@ begin
 	elseif nbToursTotal > nbToursMax
 		return trucquirésoudtoutSudoku(listeJSudokuDeHTML, nbToursMax, nbRécursionsMax, nbRécursions+1) 
 	else
-		# return matriceàlisteJS(mS') ## si vous utilisez : matriceSudoku'
+		# return matriceàlisteJS(mS') ## si vous utilisez : matriceSudoku(...)'
 		return (matriceàlisteJS(mS), md"**Pour résoudre ce sudoku :** il a fallu faire **$nbChoixfait choix** et **$nbTours $((nbTours>1) ? :tours : :tour)** (si on savait à l'avance les bons choix), ce programme ayant fait rééllement _**$nbToursTotal $((nbToursTotal>1) ? :tours : :tour) au total**_ !!! 😃")
 	end
   end
 ######################################################################################
-	
-end;
-
-# ╔═╡ 96d2d3e0-2133-11eb-3f8b-7350f4cda025
-md"# Résoudre un Sudoku par Alexis 😎" # v1.2 mercredi 16/12/2020
-
-# Pour la vue HTML et le style CSS, cela est fortement inspiré de https://github.com/Pocket-titan/DarkMode et pour le sudoku https://observablehq.com/@filipermlh/ia-sudoku-ple1
-# Pour basculer entre plusieurs champs automatiquement via JavaScript, merci à https://stackoverflow.com/a/15595732
-# Pour info, styleCSSpourSudokuCachéSousLeTitre! :)
-
-# Ce "plutoku" est visible sur https://github.com/4LD/plutoku
-
-# Pour le relancer, c'est sur https://mybinder.org/v2/gh/fonsp/pluto-on-binder/master?urlpath=pluto/open?url=https://raw.githubusercontent.com/4LD/plutoku/main/Plutoku.jl
-
-# ╔═╡ 43ec2840-239d-11eb-075a-071ac0d6f4d4
-styleCSSpourSudokuCachéSousLeTitre! = html"""
+end; html"""
 <style>
 
 /*///////////  Pour Pluto.jl  //////////////*/
@@ -455,23 +442,38 @@ td input{
 	color:#aaa;
 }
 
-</style>"""; styleCSSpourSudokuCachéSousLeTitre! 
+</style>""" # fin du styleCSSpourSudokuCachéSousLeTitre! 
+
+# ╔═╡ 96d2d3e0-2133-11eb-3f8b-7350f4cda025
+md"# Résoudre un Sudoku par Alexis 😎" # v1.2 jeudi 17/12/2020
+
+# Pour la vue HTML et le style CSS, cela est fortement inspiré de https://github.com/Pocket-titan/DarkMode et pour le sudoku https://observablehq.com/@filipermlh/ia-sudoku-ple1
+# Pour basculer entre plusieurs champs automatiquement via JavaScript, merci à https://stackoverflow.com/a/15595732
+# Et bien sûr le calepin d'exemple de @fonsp "3. Interactivity"
+# Pour info, styleCSSpourSudokuCachéSousLeTitre! :)
+
+# Ce "plutoku" est visible sur https://github.com/4LD/plutoku
+
+# Pour le relancer, c'est sur https://mybinder.org/v2/gh/fonsp/pluto-on-binder/master?urlpath=pluto/open?url=https://raw.githubusercontent.com/4LD/plutoku/main/Plutoku.jl
 
 # ╔═╡ 81bbbd00-2c37-11eb-38a2-09eb78490a16
 md"""Si besoin dans cette session, le sudoku initial (modifié ou non) peut rester en mémoire en cliquant sur le bouton suivant : $(@bind boutonSudokuInitial html"<input type=button style='margin-left: 10px;' value='Sudoku initial à garder ;)'>") """
 
 # ╔═╡ caf45fd0-2797-11eb-2af5-e14c410d5144
 begin 
-	boutonSudokuInitial # Permet de remplacer le sudoku initial par celui gardé
-	if SudokuVideSiBesoin[3]==SudokuVideSiBesoin[1]
-		SudokuVideSiBesoin[2] = copy(SudokuVideSiBesoin[4])
-	else SudokuVideSiBesoin[2] = copy(SudokuVideSiBesoin[3]) # Astuce pour basculer
-	end
+	# boutonSudokuInitial # Permet de remplacer le sudoku initial par celui gardé
+	function définitionSudokuInitial!(nouveau=SudokuVideSiBesoin[3],mémoire=SudokuVideSiBesoin,bouton=boutonSudokuInitial)
+		if nouveau==mémoire[1]
+			mémoire[2] = copy(mémoire[4])
+		else mémoire[2] = copy(nouveau) # Astuce pour basculer
+		end # On peut garder le sudoku initial cf. commentaire ci-dessous "déf..HTML)"
+	end # à mettre dans une cellule à part, copier le texte produit ≈ "déf..0]])"
+	définitionSudokuInitial!() # ==> "définitionSudokuInitial!($listeJSudokuDeHTML)"
 end; @bind viderOupas puces(["Vider le sudoku initial","Le sudoku initial ;)"],"Le sudoku initial ;)"; idPuces="ModifierInit")
 
 # ╔═╡ a038b5b0-23a1-11eb-021d-ef7de773ef0e
 begin
-	viderSudoku = (viderOupas == "Vider le sudoku initial" ? 1 : 2)
+	viderOupas isa Missing ? (viderSudoku = 2) : (viderSudoku = (viderOupas == "Vider le sudoku initial" ? 1 : 2))
 	SudokuInitial = HTML("""
 <script>
 //styleCSSpourSudokuCachéSousLeTitre!
@@ -587,18 +589,18 @@ return sudokuViewReactiveValue(createSudokuHtml(defaultFixedValues));
 end
 
 # ╔═╡ 7cce8f50-2469-11eb-058a-099e8f6e3103
-md"## Sudoku initial ⤴ (modifiable) et sa solution :"
+viderOupas isa Missing ? md"## ... 3, 2, 1 ... le lancement est engagé ! ... 🚀" : md"## Sudoku initial ⤴ (modifiable) et sa solution :"
 
 # ╔═╡ b2cd0310-2663-11eb-11d4-49c8ce689142
-SudokuVideSiBesoin[3] = listeJSudokuDeHTML; sudokuSolution = trucquirésoudtoutSudoku(listeJSudokuDeHTML); sudokuSolution[2] # La petite explication, si vous avez un "bug"... je ne sais pas comment vous avez fait ;)
+listeJSudokuDeHTML isa Missing ? nothing : (SudokuVideSiBesoin[3] = listeJSudokuDeHTML; #= Pour sudoku initial =# sudokuSolution = trucquirésoudtoutSudoku(listeJSudokuDeHTML); sudokuSolution[2]) # La petite explication
 
 # ╔═╡ bba0b550-2784-11eb-2f58-6bca9b1260d0
  @bind voirOuPas puces(["Cacher le résultat","Voir le résultat"],"Voir le résultat"; idPuces="CacherRésultat")
 
 # ╔═╡ 4c810c30-239f-11eb-09b6-cdc93fb56d2c
-sudokuRésolu = voirOuPas=="Cacher le résultat" ? (typeof(sudokuSolution[1])==String ? md"""# 🤐 Le sudoku résolu est caché pour le moment comme demandé...
+voirOuPas isa Missing ? nothing : (sudokuRésolu = voirOuPas=="Cacher le résultat" ? (typeof(sudokuSolution[1])==String ? md"""# 🤐 Le sudoku résolu est caché pour le moment comme demandé...
 ⚡ Attention, sudoku initial à revoir ! Même "Voir le résultat" ne le donnera pas 😜 """ : md"""# 🤐 Le sudoku résolu est caché pour le moment comme demandé...
-Bonne chance ! Sinon, merci de recocher ci-dessus : "Voir le résultat" """) : htmlSudoku(sudokuSolution[1],listeJSudokuDeHTML)
+Bonne chance ! Sinon, merci de recocher ci-dessus : "Voir le résultat" """) : htmlSudoku(sudokuSolution[1],listeJSudokuDeHTML))
 
 # ╔═╡ Cell order:
 # ╟─96d2d3e0-2133-11eb-3f8b-7350f4cda025
@@ -610,4 +612,3 @@ Bonne chance ! Sinon, merci de recocher ci-dessus : "Voir le résultat" """) : h
 # ╟─b2cd0310-2663-11eb-11d4-49c8ce689142
 # ╟─bba0b550-2784-11eb-2f58-6bca9b1260d0
 # ╟─4c810c30-239f-11eb-09b6-cdc93fb56d2c
-# ╟─9abbcc70-2429-11eb-3278-f5f018fad179
