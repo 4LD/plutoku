@@ -16,13 +16,20 @@ end
 # ╔═╡ 43ec2840-239d-11eb-075a-071ac0d6f4d4
 begin 
 	# styleCSSpourSudokuCachéSousLeTitre! ## voir tout en bas
-	# sudokuInitial!(...) ## caché dans la case suivante ^^ (case n°3 ;)
-	using Random: shuffle # Astuce pour être encore plus rapide = Fast & Furious
+	using Random: shuffle! # Astuce pour être encore plus rapide = Fast & Furious
 	
 	SudokuVideSiBesoin=[[[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]],
 						[[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,1,2,3,4,5,0,0,0],[0,2,0,0,3,0,6,0,0],[0,3,4,5,6,0,0,7,0],[0,6,0,0,7,0,8,0,0],[0,7,0,0,8,9,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]],
 						[[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,1,2,3,4,5,0,0,0],[0,2,0,0,3,0,6,0,0],[0,3,4,5,6,0,0,7,0],[0,6,0,0,7,0,8,0,0],[0,7,0,0,8,9,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]],
 						[[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,1,2,3,4,5,0,0,0],[0,2,0,0,3,0,6,0,0],[0,3,4,5,6,0,0,7,0],[0,6,0,0,7,0,8,0,0],[0,7,0,0,8,9,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]]] # En triple pour garder mes initial(e)s ^^
+	
+	function sudokuInitial!(nouveau=SudokuVideSiBesoin[3],mémoire=SudokuVideSiBesoin)
+		if nouveau==mémoire[1] # Si c'est vide on revient à mon défaut
+			mémoire[2] = copy(mémoire[4])
+		else mémoire[2] = copy(nouveau) # Astuce pour sauver le sudoku en cours
+		end
+		return md"""### Le $(html"<a href='#ModifierInit'>sudoku initial</a>") est ainsi restoré ! 🥳 """
+	end
 	
 	matriceSudoku(listeJSudokuDeHTML) = hcat(listeJSudokuDeHTML...) #' en pinaillant
 	matriceàlisteJS(matrice9x9) = [matrice9x9[:,i] for i in 1:9] # I will be back !
@@ -118,12 +125,12 @@ begin
 	
 ######################################################################################
   # function trucquirésoudtoutSudoku(listeJSudokuDeHTML, nbToursMax = 10_000_000)
-  function trucquirésoudtoutSudoku(listeJSudokuDeHTML, nbToursMax = 203, nbRécursionsMax = 26, nbRécursions = 0) 
+  function trucquirésoudtoutSudoku(listeJSudokuDeHTML, nbToursMax = 203, nbRécursionsMax = 7, nbRécursions = 0) 
 	nbTours = 0 # cela compte les tours si choisi bien (avec un léger décalage)
 	nbToursTotal = 0 # le nombre qui ce programme a réellement fait
 	
 	mS::Array{Int,2} = matriceSudoku(listeJSudokuDeHTML) # Converti en vrai matrice
-	lesZéros = shuffle([(i,j) for i in 1:9, j in 1:9 if mS[i,j]==0]) # Fast & Furious
+	lesZéros = shuffle!([(i,j) for i in 1:9, j in 1:9 if mS[i,j]==0])# Fast & Furious
 	
 	listedechoix = []
 	listedancienneMat = []
@@ -134,12 +141,11 @@ begin
 	allerAuChoixSuivant = false
 	choixPrécédent = false
 	choixAfaire = false
-	auMoinsUnChoixFait = false
 # 	if listeJSudokuDeHTML==[[1,0,0,0,0,0,0,0,0],[0,2,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]]
 # 		return ([[1,3,4,2,5,6,7,8,9],[5,2,6,7,8,9,1,3,4],[7,8,9,1,3,4,2,5,6],[2,5,1,3,4,7,9,6,8],[8,6,3,5,9,1,4,2,7],[4,9,7,6,2,8,3,1,5],[3,4,5,8,7,2,6,9,1],[6,7,2,9,1,5,8,4,3],[9,1,8,4,6,3,5,7,2]],md"""**Pour résoudre ce sudoku :** il fallait faire **48 choix** et **24 tours** (si on savait à l'avance les bons choix), ce programme ayant fait rééllement *2 457 708 tours* !!! 
 				
 # 		... j'ai un peu triché dans cette "IA" (en incluant ce cas) pour vous faire gagner du temps 😄""") ## <- Lenteurs évitées grace à Fast & Furious (cf. plus haut)
-	if vérifSudokuBon(mS)
+	if nbRécursions>0 || vérifSudokuBon(mS)
 		while length(lesZéros)>0 && nbToursTotal <= nbToursMax
 			çaNavancePas = true # Permet de voir si rien ne se remplit en un tour
 			nbTours += 1
@@ -148,10 +154,9 @@ begin
 			if !allerAuChoixSuivant
 				for (key, (i,j)) in enumerate(lesZéros)
 					listechiffre = chiffrePossible(mS,i,j)
-					if listechiffre == [] # Plus de possibilité... pas bon signe ^^
-						if auMoinsUnChoixFait
-							allerAuChoixSuivant = true # donc mauvais choix
-						end
+					if isempty(listechiffre) # Plus de possibilité... pas bon signe ^^
+						allerAuChoixSuivant = true # donc mauvais choix
+						break
 					elseif length(listechiffre) == 1 # L'idéal, une seule possibilité
 						mS[i,j]=listechiffre[1]
 						push!(lesClésZérosàSuppr, key)
@@ -165,12 +170,12 @@ begin
 			if çaNavancePas || allerAuChoixSuivant # Pour avancer autrement ^^
 				minChoixdesZéros = 10
 				if allerAuChoixSuivant # Si le choix en cours n'est pas bon
-					if choixPrécédent==false || listedechoix==[] # pas de bol hein
-						return " ⚡ Sudoku impossible", md"""# ⚡ Sudoku impossible à résoudre... mais impossible de me piéger 😜
+					if choixPrécédent==false || isempty(listedechoix)# pas de bol hein
+						return " ⚡ Sudoku impossible", md"""## ⚡ Sudoku impossible à résoudre... mais impossible de me piéger 😜
 							
 		Si ce n'est pas le cas, revérifier le Sudoku initial, car celui-ci n'a pas de solution possible.
 							
-		Par exemple : si une case attend uniquement un 1 (en ligne), mais aussi un 9 (en colonne) ← il n'y aura donc aucune solution, car on ne peut pas mettre à la fois 1 et 9 dans une seule case : c'est impossible à résoudre comme ce sudoku initial."""
+		Par exemple : si une case attend uniquement un 1 (en ligne), mais aussi un 9 (en colonne) ← il n'y aura donc aucune solution, car on ne peut pas mettre à la fois 1 et 9 dans une seule case : c'est impossible à résoudre... comme ce sudoku initial."""
 					elseif choixPrécédent[3] < choixPrécédent[4] # Aller au suivant
 						(i,j, choix, l, lc) = choixPrécédent
 						choixPrécédent = (i,j, choix+1, l, lc)
@@ -181,11 +186,11 @@ begin
 						mS[i,j] = lc[choix+1]
 						lesZéros = copy(listedesZéros[nbChoixfait])
 					elseif length(listedechoix) < 2 # pas 2 bol
-						return " ⚡ Sudoku impossible", md"""# ⚡ Sudoku impossible à résoudre... mais impossible de me piéger 😜
+						return " ⚡ Sudoku impossible", md"""## ⚡ Sudoku impossible à résoudre... mais impossible de me piéger 😜
 							
 		Si ce n'est pas le cas, revérifier le Sudoku initial, car celui-ci n'a pas de solution possible.
 							
-		Par exemple : si une case attend uniquement un 1 (en ligne), mais aussi un 9 (en colonne) ← il n'y aura donc aucune solution, car on ne peut pas mettre à la fois 1 et 9 dans une seule case : c'est impossible à résoudre comme ce sudoku initial."""
+		Par exemple : si une case attend uniquement un 1 (en ligne), mais aussi un 9 (en colonne) ← il n'y aura donc aucune solution, car on ne peut pas mettre à la fois 1 et 9 dans une seule case : c'est impossible à résoudre... comme ce sudoku initial."""
 					else # Il faut revenir d'un cran dans la liste historique
 						deleteat!(listedechoix, nbChoixfait)
 						deleteat!(listedancienneMat, nbChoixfait)
@@ -197,8 +202,7 @@ begin
 						lesZéros = copy(listedesZéros[nbChoixfait])
 						nbTours = listeTours[nbChoixfait]
 					end
-					else # Nouveau choix à faire et à garder en mémoire
-					auMoinsUnChoixFait = true
+				else # Nouveau choix à faire et à garder en mémoire
 					push!(listedechoix, choixAfaire) # ici pas besoin de copie
 					push!(listedancienneMat , copy(mS)) # copie en dur
 					filter!(!=(choixAfaire[1:2]), lesZéros) # On retire ce que l'on a choisi de faire
@@ -212,22 +216,22 @@ begin
 				deleteat!(lesZéros, lesClésZérosàSuppr) # On retire ceux remplis
 			end	
 		end
-		else return "🧐 Merci de corriger ce Sudoku ;)", md"""# 🧐 Merci de revoir ce sudoku, il n'est pas conforme : 
-			En effet, il doit y avoir au moins sur une ligne, ou colonne, ou carré un chiffre en double ou au mauvais endroit ! 😄"""
+		else return "🧐 Merci de corriger ce Sudoku ;)", md"""## 🧐 Merci de revoir ce sudoku, il n'est pas conforme : 
+			En effet, il doit y avoir au moins sur une ligne ou colonne ou carré, un chiffre en double, ou au mauvais endroit ! 😄"""
 	end
 	if nbRécursions > nbRécursionsMax
-		return "👍 Merci de mettre un peu plus de chiffres... ou retenter ;)", md"""# 👍 Merci de mettre plus de chiffres ;) 
+		return "🤓 Merci de mettre un peu plus de chiffres... sudoku sûrement impossible ;)", md"""## 🤓 Merci de mettre plus de chiffres ;) 
 			
 		En effet, malgrès le fait que ce [Plutoku](https://github.com/4LD/plutoku) est quasi-parfait* 😄, certains cas (très rare bien sûr) peuvent mettre du temps (moins de 2 minutes) que je vous épargne ;)
 		
-		Il est aussi possible de retenter sa chance en ajoutant puis retirer un chiffre pour relancer un essai... dans tous les cas, merci de me le signaler, car normalement ce cas arrive moins souvent que gagner au Loto ^^ 
+		Il y a de forte chance que votre sudoku soit impossible... sinon, merci de me le signaler, car normalement ce cas arrive moins souvent que gagner au Loto ^^ 
 		
 		_* Sauf erreur de votre humble serviteur_"""
 	elseif nbToursTotal > nbToursMax
-		return trucquirésoudtoutSudoku(listeJSudokuDeHTML, nbToursMax, nbRécursionsMax, nbRécursions+1) 
+		return trucquirésoudtoutSudoku(listeJSudokuDeHTML, nbToursMax+26, nbRécursionsMax, nbRécursions+1) 
 	else
 		# return matriceàlisteJS(mS') ## si on utilise : matriceSudoku(...)'
-		return (matriceàlisteJS(mS), md"**Pour résoudre ce sudoku :** il a fallu faire **$nbChoixfait choix** et **$nbTours $((nbTours>1) ? :tours : :tour)** (si on savait à l'avance les bons choix), ce programme ayant fait rééllement _**$nbToursTotal $((nbToursTotal>1) ? :tours : :tour) au total**_ !!! 😃")
+		return (matriceàlisteJS(mS), md"**Pour résoudre ce sudoku :** il a fallu faire **$nbChoixfait choix** et **$nbTours $((nbTours>1) ? :tours : :tour)** (si on savait à l'avance les bons choix), ce programme ayant fait rééllement _**$nbToursTotal $((nbToursTotal>1) ? :tours : :tour) au total**_ en $(nbRécursions+1) $((nbRécursions+1>1) ? :essais : :essai) !!! 😃")
 	end
   end
 ######################################################################################
@@ -446,7 +450,7 @@ td input{
 </style>""" # fin du styleCSSpourSudokuCachéSousLeTitre! 
 
 # ╔═╡ 96d2d3e0-2133-11eb-3f8b-7350f4cda025
-md"# Résoudre un Sudoku par Alexis 😎" # v1.3 jeudi 28/01/2020
+md"# Résoudre un Sudoku par Alexis 😎" # v1.4 lundi 15/02/2021
 
 # Pour la vue HTML et le style CSS, cela est fortement inspiré de https://github.com/Pocket-titan/DarkMode et pour le sudoku https://observablehq.com/@filipermlh/ia-sudoku-ple1
 # Pour basculer entre plusieurs champs automatiquement via JavaScript, merci à https://stackoverflow.com/a/15595732
@@ -458,19 +462,12 @@ md"# Résoudre un Sudoku par Alexis 😎" # v1.3 jeudi 28/01/2020
 # Pour le relancer, c'est sur https://mybinder.org/v2/gh/fonsp/pluto-on-binder/master?urlpath=pluto/open?url=https://raw.githubusercontent.com/4LD/plutoku/main/Plutoku.jl
 
 # ╔═╡ 81bbbd00-2c37-11eb-38a2-09eb78490a16
-md"""Si besoin dans cette session, le sudoku initial (modifié ou non) peut rester en mémoire en cliquant sur le bouton suivant : $(@bind boutonSudokuInitial html"<input type=button style='margin-left: 10px;' value='Sudoku initial à garder ;)'>") """
+md"""Si besoin dans cette session, le sudoku initial modifié peut rester en mémoire en cliquant sur le bouton suivant : $(@bind boutonSudokuInitial html"<input type=button style='margin-left: 10px;' value='Sudoku initial modifié ;)'>") """
 
 # ╔═╡ caf45fd0-2797-11eb-2af5-e14c410d5144
 begin 
-	# boutonSudokuInitial # Permet de remplacer le sudoku initial par celui gardé
-	function sudokuInitial!(nouveau=SudokuVideSiBesoin[3],mémoire=SudokuVideSiBesoin,bouton=boutonSudokuInitial)
-		if nouveau==mémoire[1]
-			mémoire[2] = copy(mémoire[4])
-		else mémoire[2] = copy(nouveau) # Astuce pour basculer
-		end
-		return md"### Le sudoku initial est ainsi restoré ! 🥳"
-	end # à mettre dans une cellule à part, copier le texte produit ≈ "déf..0]])"
-	sudokuInitial!() # ==> "sudokuInitial!($listeJSudokuDeHTML)" voir Bonus en bas
+	boutonSudokuInitial # Remettre le puce "ModifierInit" sur Le sudoku initial ;)
+	sudokuInitial!() # Permet de remplacer le sudoku initial par celui modifié
 end; @bind viderOupas puces(["Vider le sudoku initial","Le sudoku initial ;)"],"Le sudoku initial ;)"; idPuces="ModifierInit")
 
 # ╔═╡ a038b5b0-23a1-11eb-021d-ef7de773ef0e
@@ -593,7 +590,7 @@ end
 md"## Sudoku initial ⤴ (modifiable) et sa solution :"
 
 # ╔═╡ b2cd0310-2663-11eb-11d4-49c8ce689142
-listeJSudokuDeHTML isa Missing ? md"## ... 3, 2, 1 ... le lancement est engagé ! ... 🚀" : (SudokuVideSiBesoin[3] = listeJSudokuDeHTML; #= Pour sudoku initial =# sudokuSolution = trucquirésoudtoutSudoku(listeJSudokuDeHTML); sudokuSolution[2]) # La petite explication
+listeJSudokuDeHTML isa Missing ? md"### ... 3, 2, 1 ... le lancement est engagé ! ... 🚀" : (SudokuVideSiBesoin[3] = listeJSudokuDeHTML; #= Pour sudoku initial =# sudokuSolution = trucquirésoudtoutSudoku(listeJSudokuDeHTML); sudokuSolution[2]) # La petite explication
 
 # ╔═╡ bba0b550-2784-11eb-2f58-6bca9b1260d0
  @bind voirOuPas puces(["Cacher le résultat","Voir le résultat"],"Voir le résultat"; idPuces="CacherRésultat")
@@ -615,16 +612,16 @@ function générateurDeCodeClé() {
 document.querySelector("#clégén").addEventListener("click", générateurDeCodeClé);
 </script>
 	<h5 id="Bonus">Bonus : pour garder le sudoku pour plus tard... </h5>
-	<div style="margin-top: 5px;">Il est possible de générer le code via le bouton ci-dessous (cela fait même la copie automatiquement :) </div>
-	<div style="margin-bottom: 5px;">À Garder pour une prochaine session (à coller dans un bloc-note ou autre) :</div>
+	<div style="margin-top: 5px;">Il est possible de générer un code via le bouton ci-dessous (cela fait même la copie automatiquement :) </div>
+	<div style="margin-bottom: 5px;">Ce code garde le sudoku initial en cours (à coller et sauver dans un bloc-note ou autre). </div>
 	
-	<button id="clégén">Générer le code à garder :)</button>
+	<span> → </span><input type=button id="clégén" style='margin-left: 5px;margin-right: 5px;' value="Générer le code à garder :)"><span> ← </span>
 	<input id="pour-définir-le-sudoku-initial" type="text"/>
 	
-	<div style="margin-top: 2px;">Ensuite, dans une (nouvelle) session, cliquer sur | <i>Enter cell code...</i> | ci-dessous ou créer n'importe quelle cellule via le petit + visible sur le coin en haut à gauche de chaque cellule existante. </div>
+	<div style="margin-top: 2px;">Ensuite, dans une (nouvelle) session, cliquer sur |&nbsp;<i>Enter cell code...</i> | ci-dessous, ou créer n'importe quelle cellule via le petit + visible sur le coin en haut à gauche de chaque cellule existante. </div>
 	<div>Puis coller le code dans cette nouvelle cellule. </div>
-	<div>Enfin lancer le code avec le bouton ▶ tout à droite (qui doit normalement clignoter justement :) </div>
-	<div style="margin-top: 5px;">"Le sudoku initial ;)" reprendra ainsi ce sudoku sauvegardé pour y revenir si besoin ! </div>
+	<div>Enfin lancer le code avec le bouton&#xA0;▶ tout à droite (qui doit normalement clignoter justement 🤓) </div>
+	<div style="margin-top: 5px;">Recliquer sur "Le <a href="#ModifierInit">sudoku initial</a> ;)" pour revenir ainsi à ce sudoku sauvegardé ! </div>
 """)
 
 # ╔═╡ 1c9457f0-60f5-11eb-389f-d79dc5d74b83
