@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.12.20
+# v0.12.21
 
 using Markdown
 using InteractiveUtils
@@ -15,7 +15,8 @@ end
 
 # ╔═╡ 43ec2840-239d-11eb-075a-071ac0d6f4d4
 begin 
-	# styleCSSpourSudokuCachéSousLeTitre! ## voir tout en bas
+	# @bind listeJSudokuDeHTML SudokuInitial # et son javascript son inclus au dessus
+	# styleCSSpourSudokuCachéEnBasJusteAuDessusDuBonus! ## voir ici, tout en bas ↓
 	using Random: shuffle! # Astuce pour être encore plus rapide = Fast & Furious
 	
 	SudokuVideSiBesoin=[[[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]],
@@ -28,7 +29,12 @@ begin
 			mémoire[2] = copy(mémoire[4])
 		else mémoire[2] = copy(nouveau) # Astuce pour sauver le sudoku en cours
 		end
-		return md"""### Le $(html"<a href='#ModifierInit'>sudoku initial</a>") est ainsi restoré ! 🥳 """
+		# return md"""### Le $(html"<a href='#ModifierInit'>sudoku initial</a>") est ainsi restoré ! 🥳 """
+		return html"""<script>
+		var ele = document.getElementsByName("ModifierInit");
+		for(var ni=0;ni<ele.length;ni++)
+			ele[ni].checked = false;
+		</script><h3> Le <a href='#ModifierInit'>sudoku initial</a> est ainsi restoré ! 🥳 </h3>"""
 	end
 	
 	matriceSudoku(listeJSudokuDeHTML) = hcat(listeJSudokuDeHTML...) #' en pinaillant
@@ -62,6 +68,17 @@ begin
 			end
 		end
 		return true
+	end 
+	
+	function nbZérosEnLien(listeZéros, clé) # une clé pour tous les touchées (bonus :)
+		(itest,jtest) = listeZéros[clé]
+		nbZérosVus = 0
+		for (i,j) in listeZéros
+			if i == itest || j == jtest || kelcarré(i,j)==kelcarré(itest,jtest)
+				nbZérosVus +=1
+			end
+		end
+		return nbZérosVus - 1 # pour ne pas s'autocompter
 	end
 	
 	function puces(liste, valdéfaut=nothing ; idPuces="p"*string(rand(Int)))
@@ -88,7 +105,7 @@ begin
 			return liste9x9
 		else
 			return HTML(raw"""<script>
-		// styleCSSpourSudokuCachéSousLeTitre!
+		// styleCSSpourSudokuCachéEnBasJusteAuDessusDuBonus!
 		const createSudokuHtml = (values, values_ini) => {
 		  const data = [];
 		  const htmlData = [];
@@ -125,11 +142,11 @@ begin
 	
 ######################################################################################
   # function trucquirésoudtoutSudoku(listeJSudokuDeHTML, nbToursMax = 10_000_000)
-  function trucquirésoudtoutSudoku(listeJSudokuDeHTML, nbToursMax = 203, nbRécursionsMax = 7, nbRécursions = 0) 
+  function trucquirésoudtoutSudoku(listeJSudokuDeHTML, nbToursMax = 203, nbRécursionsMax = 2, nbRécursions = 0) 
 	nbTours = 0 # cela compte les tours si choisi bien (avec un léger décalage)
 	nbToursTotal = 0 # le nombre qui ce programme a réellement fait
 	
-	mS::Array{Int,2} = matriceSudoku(listeJSudokuDeHTML) # Converti en vrai matrice
+	mS::Array{Int,2} = matriceSudoku(listeJSudokuDeHTML) # Converti en vraie matrice
 	lesZéros = shuffle!([(i,j) for i in 1:9, j in 1:9 if mS[i,j]==0])# Fast & Furious
 	
 	listedechoix = []
@@ -151,10 +168,23 @@ begin
 			nbTours += 1
 			nbToursTotal += 1
 			lesClésZérosàSuppr=Int[]
+			vérifligne = fill(Int[],9)
+			vérifcol = fill(Int[],9)
+			vérifcarré = fill(Int[],9)
+			nbligne = fill(0,9)
+			nbcol = fill(0,9)
+			nbcarré = fill(0,9)
 			if !allerAuChoixSuivant
 				for (key, (i,j)) in enumerate(lesZéros)
 					listechiffre = chiffrePossible(mS,i,j)
-					if isempty(listechiffre) # Plus de possibilité... pas bon signe ^^
+					vérifligne[i] = union(vérifligne[i],listechiffre)
+					nbligne[i] += 1
+					vérifcol[j] = union(vérifcol[j],listechiffre)
+					nbcol[j] += 1
+					lecarré = kelcarré(i,j)
+					vérifcarré[lecarré] = union(vérifcarré[lecarré],listechiffre)
+					nbcarré[lecarré] += 1
+					if isempty(listechiffre) || length(vérifligne[i]) < nbligne[i] || length(vérifcol[j]) < nbcol[j] || length(vérifcarré[lecarré]) < nbcarré[lecarré] # Plus de possibilité (ou pas assez)... pas bon signe ^^
 						allerAuChoixSuivant = true # donc mauvais choix
 						break
 					elseif length(listechiffre) == 1 # L'idéal, une seule possibilité
@@ -228,14 +258,14 @@ begin
 		
 		_* Sauf erreur de votre humble serviteur_"""
 	elseif nbToursTotal > nbToursMax
-		return trucquirésoudtoutSudoku(listeJSudokuDeHTML, nbToursMax+26, nbRécursionsMax, nbRécursions+1) 
+		return trucquirésoudtoutSudoku(listeJSudokuDeHTML, nbToursMax+5_321, nbRécursionsMax, nbRécursions+1) 
 	else
 		# return matriceàlisteJS(mS') ## si on utilise : matriceSudoku(...)'
 		return (matriceàlisteJS(mS), md"**Pour résoudre ce sudoku :** il a fallu faire **$nbChoixfait choix** et **$nbTours $((nbTours>1) ? :tours : :tour)** (si on savait à l'avance les bons choix), ce programme ayant fait rééllement _**$nbToursTotal $((nbToursTotal>1) ? :tours : :tour) au total**_ en $(nbRécursions+1) $((nbRécursions+1>1) ? :essais : :essai) !!! 😃")
 	end
   end
 ######################################################################################
-end; html"""
+end; #= début du styleCSSpourSudokuCachéEnBasJusteAuDessusDuBonus! =# html"""
 <style>
 
 /*///////////  Pour Pluto.jl  //////////////*/
@@ -447,15 +477,15 @@ td input{
 	color:#aaa;
 }
 
-</style>""" # fin du styleCSSpourSudokuCachéSousLeTitre! 
+</style>""" # fin du styleCSSpourSudokuCachéEnBasJusteAuDessusDuBonus! 
 
 # ╔═╡ 96d2d3e0-2133-11eb-3f8b-7350f4cda025
-md"# Résoudre un Sudoku par Alexis 😎" # v1.4 lundi 15/02/2021
+md"# Résoudre un Sudoku par Alexis 😎" # v1.5 mardi 30/03/2021
 
 # Pour la vue HTML et le style CSS, cela est fortement inspiré de https://github.com/Pocket-titan/DarkMode et pour le sudoku https://observablehq.com/@filipermlh/ia-sudoku-ple1
-# Pour basculer entre plusieurs champs automatiquement via JavaScript, merci à https://stackoverflow.com/a/15595732
+# Pour basculer entre plusieurs champs automatiquement via JavaScript, merci à https://stackoverflow.com/a/15595732 et https://stackoverflow.com/a/44213036
 # Et bien sûr le calepin d'exemple de @fonsp "3. Interactivity"
-# Pour info, le code principal et styleCSSpourSudokuCachéSousLeTitre! :)
+# Pour info, le code principal et styleCSSpourSudokuCachéEnBasJusteAuDessusDuBonus! :)
 
 # Ce "plutoku" est visible sur https://github.com/4LD/plutoku
 
@@ -475,7 +505,7 @@ begin
 	viderOupas isa Missing ? viderSudoku = 2 : (viderSudoku = (viderOupas == "Vider le sudoku initial" ? 1 : 2))
 	SudokuInitial = HTML("""
 <script>
-// styleCSSpourSudokuCachéSousLeTitre!
+// styleCSSpourSudokuCachéEnBasJusteAuDessusDuBonus!
 
 const defaultFixedValues = $(SudokuVideSiBesoin[viderSudoku])""" * raw"""
 			
@@ -492,6 +522,7 @@ const createSudokuHtml = (values) => {
       const value = valuesLine?valuesLine[j]:0;
       const htmlInput = html`<input  
         type='text'
+		// pattern='[0-9]' //// ne fonctionne pas !
         data-row='${i}'
         data-col='${j}'
         maxlength='1' 
@@ -526,57 +557,160 @@ var sudokuViewReactiveValue = ({_sudoku:html, data}) => {
   
   let inputs = html.querySelectorAll('input');
   inputs.forEach(input => {
-    input.addEventListener('change',(e) => {
-      const i = e.target.getAttribute('data-row');
-      const j = e.target.getAttribute('data-col');
-      const val = e.target.value //parseInt(e.target.value);
-      
-      if(Number.isNaN(val)){
-        data[i][j] = 0;
-        e.target.value = "";
-      }else if(val <= 9 && val >=1){
-        data[i][j] = parseInt(val);
-      } else {
-		data[i][j] = 0;
-        e.target.value = "";
-        // e.target.value = data[i][j] > 0 ? data[i][j] : '';
-      }
-      
-      html.dispatchEvent(new Event('input'));
-    })
-    
-		
-		// Ajout par Alexis // retour // avancer en mettant des lettres ;)
-	input.addEventListener('keyup',(e) => {
-		
-		//var target = e.srcElement || e.target;
-		var target = e.target;
-    	var maxLength = 1; //parseInt(target.attributes["maxlength"].value, 10);
-    var myLength = target.value.length;
-    if (myLength >= 1) {
-        if (e.target.parentElement.nextElementSibling == null) {
-		var next = e.target.parentElement.parentElement.nextElementSibling.childNodes[0].childNodes[0]
+	
+	const daligne = (e) => {
+		return e.target.getAttribute('data-row');
+	}
+	const dacol = (e) => {
+		return e.target.getAttribute('data-col');
+	}
+	const etp2 = (e) => {
+		return e.target.parentElement.parentElement;
+	}
+	const etp3 = (e) => {
+		return e.target.parentElement.parentElement.parentElement;
+	}
+	const moveDown = (e) => { 
+		if (etp2(e).nextElementSibling == null) { 
+		var next = etp3(e).childNodes[0].childNodes[dacol(e)].childNodes[0]
+		} else { 
+		var next = etp2(e).nextElementSibling.childNodes[dacol(e)].childNodes[0]
+		} 
+		// next.selectionStart = next.selectionEnd = next.value.length;
+		next.focus();
+	}
+	const moveUp = (e) => {
+		if (etp2(e).previousElementSibling == null) { 
+		var préc = etp3(e).lastChild.childNodes[dacol(e)].childNodes[0]
+		} else { 
+		var préc = etp2(e).previousElementSibling.childNodes[dacol(e)].childNodes[0]
+		} 
+		// préc.selectionStart = préc.selectionEnd = préc.value.length;
+		préc.focus();
+	}
+	const moveLeft = (e) => {
+		if (e.target.parentElement.previousElementSibling == null) {
+			if (etp2(e).previousElementSibling == null) {
+				var préc = etp3(e).lastChild.lastChild.childNodes[0]
 		} else {
+		var préc = etp2(e).previousElementSibling.lastChild.childNodes[0]
+		} } else {
+		var préc = e.target.parentElement.previousElementSibling.childNodes[0]
+		}
+		// préc.selectionStart = préc.selectionEnd = préc.value.length;
+		préc.focus();
+	}
+	const moveRight = (e) => { 
+		if (e.target.parentElement.nextElementSibling == null) {
+			if (etp2(e).nextElementSibling == null) {
+				var next = etp3(e).childNodes[0].childNodes[0].childNodes[0]
+		} else {
+		var next = etp2(e).nextElementSibling.childNodes[0].childNodes[0]
+		} } else {
 		var next = e.target.parentElement.nextElementSibling.childNodes[0]
 		}
 		next.focus();
-    }
-    // Move to previous field if empty (user pressed backspace)
-    else if (myLength === 0) {
-        if (e.target.parentElement.previousElementSibling == null) {
-		var préc = e.target.parentElement.parentElement.previousElementSibling.lastChild.childNodes[0]
-		} else {
-		var préc = e.target.parentElement.previousElementSibling.childNodes[0]
-		}
-		préc.selectionStart = préc.selectionEnd = préc.value.length;
-		préc.focus();
+	}
 		
-    }
-		})
+	  input.addEventListener('keydown',(e) => {
 		
+	  e.target.focus();
+	  e.target.select();
+		
+	  switch (e.key) {
+		case "ArrowDown":
+		case "b":
+		case "B":
+			e.preventDefault();
+			moveDown(e);
+			break;
+		case "ArrowUp":
+		case "h":
+		case "H":
+			e.preventDefault();
+			moveUp(e);
+			break;
+		case "ArrowLeft":
+		case "g":
+		case "G":
+			e.preventDefault();
+			moveLeft(e);
+			break;
+		case "ArrowRight":
+		case "d":
+		case "D":
+			e.preventDefault();
+			moveRight(e);
+			break;
+		case "Shift":
+		case "CapsLock":
+		case "NumLock":
+			break; // https://www.w3.org/TR/uievents-key/#keys-modifier
+		case "Backspace":
+		case "Delete":
+			// e.preventDefault();
+			data[daligne(e)][dacol(e)] = 0;
+			e.target.value = "";
+			// Efface les puces car cela a été touché
+			var ele = document.getElementsByName("ModifierInit");
+			for(var ni=0;ni<ele.length;ni++)
+				ele[ni].checked = false;
+			moveLeft(e);
+			html.dispatchEvent(new Event('input'));
+		default:
+			return;
+		} })
+		
+      input.addEventListener('change',(e) => {
+		  const i = e.target.getAttribute('data-row'); // daligne(e)
+		  const j = e.target.getAttribute('data-col'); // dacol(e)
+		  const val = e.target.value //parseInt(e.target.value);
+		  const bidouilliste = {a:1,z:2,e:3,r:4,t:5,y:6,u:7,i:8,o:9,
+			A:1,Z:2,E:3,R:4,T:5,Y:6,U:7,I:8,O:9,
+			'\&':1,é:2,'\"':3,"\'":4,'\(':5,'\-':6,è:7,_:8,ç:9};
+		  if (val in bidouilliste) {
+			e.target.value = data[i][j] = bidouilliste[val];
+		  }else if(val <= 9 && val >=1){
+			data[i][j] = parseInt(val);
+		  } else { 
+			e.target.value = data[i][j] === 0 ? '' : data[i][j];
+		  }
+		
+			// Efface les puces car cela a été touché
+			var ele = document.getElementsByName("ModifierInit");
+			for(var ni=0;ni<ele.length;ni++)
+				ele[ni].checked = false;
+		
+		  html.dispatchEvent(new Event('input'));
+    })
+	
+	input.addEventListener('keyup',(e) => {
+		
+	switch (e.key) {
+		case "ArrowDown":
+		case "b":
+		case "B":
+		case "ArrowUp":
+		case "h":
+		case "H":
+		case "ArrowLeft":
+		case "g":
+		case "G":
+		case "ArrowRight":
+		case "d":
+		case "D":
+		case "Shift":
+		case "CapsLock":
+		case "NumLock":
+		case "Backspace":
+		case "Delete":
+			break; // https://www.w3.org/TR/uievents-key/#keys-modifier
+		default:
+			moveRight(e);
+		} })		
 		
   })
-  html.dispatchEvent(new Event('input'))
+  html.dispatchEvent(new Event('input'));
   return html;
 
 };
