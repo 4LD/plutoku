@@ -15,7 +15,7 @@ end
 
 # ╔═╡ 43ec2840-239d-11eb-075a-071ac0d6f4d4
 begin 
-	# @bind listeJSudokuDeHTML SudokuInitial # et son javascript son inclus au dessus
+	# @bind listeJSudokuDeHTML SudokuInitial # et son javascript est inclus au dessus
 	# styleCSSpourSudokuCachéEnBasJusteAuDessusDuBonus! ## voir ici, tout en bas ↓
 	using Random: shuffle! # Astuce pour être encore plus rapide = Fast & Furious
 	
@@ -24,17 +24,22 @@ begin
 						[[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,1,2,3,4,5,0,0,0],[0,2,0,0,3,0,6,0,0],[0,3,4,5,6,0,0,7,0],[0,6,0,0,7,0,8,0,0],[0,7,0,0,8,9,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]],
 						[[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,1,2,3,4,5,0,0,0],[0,2,0,0,3,0,6,0,0],[0,3,4,5,6,0,0,7,0],[0,6,0,0,7,0,8,0,0],[0,7,0,0,8,9,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]]] # En triple pour garder mes initial(e)s ^^
 	
-	function sudokuInitial!(nouveau=SudokuVideSiBesoin[3],mémoire=SudokuVideSiBesoin)
+	function sudokuInitial!(nouveau=SudokuVideSiBesoin[3],mémoire=SudokuVideSiBesoin ; idLien="lien"*string(rand(Int)))
 		if nouveau==mémoire[1] # Si c'est vide on revient à mon défaut
 			mémoire[2] = copy(mémoire[4])
 		else mémoire[2] = copy(nouveau) # Astuce pour sauver le sudoku en cours
 		end
 		# return md"""### Le $(html"<a href='#ModifierInit'>sudoku initial</a>") est ainsi restoré ! 🥳 """
-		return html"""<script>
+		return HTML("""<script>
 		var ele = document.getElementsByName("ModifierInit");
 		for(var ni=0;ni<ele.length;ni++)
 			ele[ni].checked = false;
-		</script><h3> Le <a href='#ModifierInit'>sudoku initial</a> est ainsi restoré ! 🥳 </h3>"""
+		
+		function goSudokuIni() {
+			document.getElementsByName("ModifierInit")[1].click();
+		}
+		document.querySelector("#$idLien").addEventListener("click", goSudokuIni);
+		</script><h3 style="margin-top: 0;"> Le <a id="$idLien" href='#ModifierInit'>sudoku initial</a> est ainsi restoré ! 🥳 </h3>""")
 	end
 	
 	matriceSudoku(listeJSudokuDeHTML) = hcat(listeJSudokuDeHTML...) #' en pinaillant
@@ -480,10 +485,10 @@ td input{
 </style>""" # fin du styleCSSpourSudokuCachéEnBasJusteAuDessusDuBonus! 
 
 # ╔═╡ 96d2d3e0-2133-11eb-3f8b-7350f4cda025
-md"# Résoudre un Sudoku par Alexis 😎" # v1.5 mardi 30/03/2021
+md"# Résoudre un Sudoku par Alexis 😎" # v1.5 jeudi 01/04/2021 🐠
 
 # Pour la vue HTML et le style CSS, cela est fortement inspiré de https://github.com/Pocket-titan/DarkMode et pour le sudoku https://observablehq.com/@filipermlh/ia-sudoku-ple1
-# Pour basculer entre plusieurs champs automatiquement via JavaScript, merci à https://stackoverflow.com/a/15595732 et https://stackoverflow.com/a/44213036
+# Pour basculer entre plusieurs champs automatiquement via JavaScript, merci à https://stackoverflow.com/a/15595732 , https://stackoverflow.com/a/44213036 et etc.
 # Et bien sûr le calepin d'exemple de @fonsp "3. Interactivity"
 # Pour info, le code principal et styleCSSpourSudokuCachéEnBasJusteAuDessusDuBonus! :)
 
@@ -507,6 +512,8 @@ begin
 <script>
 // styleCSSpourSudokuCachéEnBasJusteAuDessusDuBonus!
 
+const premier = JSON.stringify( $(SudokuVideSiBesoin[1]) );
+const deuxième = JSON.stringify( $(SudokuVideSiBesoin[2]) );
 const defaultFixedValues = $(SudokuVideSiBesoin[viderSudoku])""" * raw"""
 			
 // const defaultFixedValues = [[0,0,0,7,0,0,0,0,0],[1,0,0,0,0,0,0,0,0],[0,0,0,4,3,0,2,0,0],[0,0,0,0,0,0,0,0,6],[0,0,0,5,0,9,0,0,0],[0,0,0,0,0,0,4,1,8],[0,0,0,0,8,1,0,0,0],[0,0,2,0,0,0,0,5,0],[0,4,0,0,0,0,3,0,0]];
@@ -543,7 +550,6 @@ const createSudokuHtml = (values) => {
       <tbody>${htmlData}</tbody>
     </table><br>`  
   return {_sudoku,data};
-  // return _sudoku;
   
 }
 
@@ -553,93 +559,66 @@ var sudokuViewReactiveValue = ({_sudoku:html, data}) => {
     e.preventDefault();
     html.value = data
     return false;
-  });
+  }); 
   
   let inputs = html.querySelectorAll('input');
   inputs.forEach(input => {
 	
-	const daligne = (e) => {
-		return e.target.getAttribute('data-row');
-	}
-	const dacol = (e) => {
-		return e.target.getAttribute('data-col');
-	}
-	const etp2 = (e) => {
-		return e.target.parentElement.parentElement;
-	}
-	const etp3 = (e) => {
-		return e.target.parentElement.parentElement.parentElement;
-	}
+	const daligne = (e) => e.target.getAttribute('data-row');
+	const dacol = (e) => e.target.getAttribute('data-col');
+	const etp2 = (e) => e.target.parentElement.parentElement;
+	const etp3 = (e) => e.target.parentElement.parentElement.parentElement;
+
 	const moveDown = (e) => { 
 		if (etp2(e).nextElementSibling == null) { 
-		var next = etp3(e).childNodes[0].childNodes[dacol(e)].childNodes[0]
+		etp3(e).childNodes[0].childNodes[dacol(e)].childNodes[0].focus();
 		} else { 
-		var next = etp2(e).nextElementSibling.childNodes[dacol(e)].childNodes[0]
+		etp2(e).nextElementSibling.childNodes[dacol(e)].childNodes[0].focus();
 		} 
-		// next.selectionStart = next.selectionEnd = next.value.length;
-		next.focus();
 	}
 	const moveUp = (e) => {
 		if (etp2(e).previousElementSibling == null) { 
-		var préc = etp3(e).lastChild.childNodes[dacol(e)].childNodes[0]
+		etp3(e).lastChild.childNodes[dacol(e)].childNodes[0].focus();
 		} else { 
-		var préc = etp2(e).previousElementSibling.childNodes[dacol(e)].childNodes[0]
+		etp2(e).previousElementSibling.childNodes[dacol(e)].childNodes[0].focus();
 		} 
-		// préc.selectionStart = préc.selectionEnd = préc.value.length;
-		préc.focus();
 	}
 	const moveLeft = (e) => {
 		if (e.target.parentElement.previousElementSibling == null) {
 			if (etp2(e).previousElementSibling == null) {
-				var préc = etp3(e).lastChild.lastChild.childNodes[0]
-		} else {
-		var préc = etp2(e).previousElementSibling.lastChild.childNodes[0]
+				etp3(e).lastChild.lastChild.childNodes[0].focus();
+			} else {
+			etp2(e).previousElementSibling.lastChild.childNodes[0].focus();
 		} } else {
-		var préc = e.target.parentElement.previousElementSibling.childNodes[0]
-		}
-		// préc.selectionStart = préc.selectionEnd = préc.value.length;
-		préc.focus();
+		e.target.parentElement.previousElementSibling.childNodes[0].focus();
+		} 
 	}
 	const moveRight = (e) => { 
 		if (e.target.parentElement.nextElementSibling == null) {
 			if (etp2(e).nextElementSibling == null) {
-				var next = etp3(e).childNodes[0].childNodes[0].childNodes[0]
-		} else {
-		var next = etp2(e).nextElementSibling.childNodes[0].childNodes[0]
-		} } else {
-		var next = e.target.parentElement.nextElementSibling.childNodes[0]
-		}
-		next.focus();
+				etp3(e).childNodes[0].childNodes[0].childNodes[0].focus();
+			} else {
+			etp2(e).nextElementSibling.childNodes[0].childNodes[0].focus();
+		} } else { 
+		e.target.parentElement.nextElementSibling.childNodes[0].focus();
+		} 
 	}
 		
-	  input.addEventListener('keydown',(e) => {
-		
-	  e.target.focus();
+	input.addEventListener('keydown',(e) => {
+	  // e.target.focus();
 	  e.target.select();
 		
 	  switch (e.key) {
 		case "ArrowDown":
-		case "b":
-		case "B":
-			e.preventDefault();
 			moveDown(e);
 			break;
 		case "ArrowUp":
-		case "h":
-		case "H":
-			e.preventDefault();
 			moveUp(e);
 			break;
 		case "ArrowLeft":
-		case "g":
-		case "G":
-			e.preventDefault();
 			moveLeft(e);
 			break;
 		case "ArrowRight":
-		case "d":
-		case "D":
-			e.preventDefault();
 			moveRight(e);
 			break;
 		case "Shift":
@@ -648,68 +627,88 @@ var sudokuViewReactiveValue = ({_sudoku:html, data}) => {
 			break; // https://www.w3.org/TR/uievents-key/#keys-modifier
 		case "Backspace":
 		case "Delete":
-			// e.preventDefault();
-			data[daligne(e)][dacol(e)] = 0;
-			e.target.value = "";
-			// Efface les puces car cela a été touché
-			var ele = document.getElementsByName("ModifierInit");
-			for(var ni=0;ni<ele.length;ni++)
-				ele[ni].checked = false;
-			moveLeft(e);
-			html.dispatchEvent(new Event('input'));
+			if (data[daligne(e)][dacol(e)] !== 0) {
+				data[daligne(e)][dacol(e)] = 0;
+				e.target.value = "";
+				// Efface les puces car cela a été touché
+				var ele = document.getElementsByName("ModifierInit");
+				for(var ni=0;ni<ele.length;ni++)
+					ele[ni].checked = false;
+				const jdata = JSON.stringify(data);
+				if (jdata == premier) {
+					ele[0].checked = true;
+				} else if (jdata == deuxième) {
+					ele[1].checked = true;
+				}
+				html.dispatchEvent(new Event('input'));
+			}
+			(e.key==="Delete")?moveRight(e):moveLeft(e);
+			var da = document.activeElement;
+			(e.key==="Delete")?(da.selectionStart = da.selectionEnd = da.value.length):(da.selectionStart = da.selectionEnd = 0); // select KO :(
+			break;
 		default:
 			return;
-		} })
+		} }) 
 		
-      input.addEventListener('change',(e) => {
-		  const i = e.target.getAttribute('data-row'); // daligne(e)
-		  const j = e.target.getAttribute('data-col'); // dacol(e)
-		  const val = e.target.value //parseInt(e.target.value);
-		  const bidouilliste = {a:1,z:2,e:3,r:4,t:5,y:6,u:7,i:8,o:9,
-			A:1,Z:2,E:3,R:4,T:5,Y:6,U:7,I:8,O:9,
-			'\&':1,é:2,'\"':3,"\'":4,'\(':5,'\-':6,è:7,_:8,ç:9};
-		  if (val in bidouilliste) {
-			e.target.value = data[i][j] = bidouilliste[val];
-		  }else if(val <= 9 && val >=1){
-			data[i][j] = parseInt(val);
-		  } else { 
-			e.target.value = data[i][j] === 0 ? '' : data[i][j];
-		  }
-		
+    input.addEventListener('input',(e) => {
+	  const i = e.target.getAttribute('data-row'); // daligne(e)
+	  const j = e.target.getAttribute('data-col'); // dacol(e)
+	  const val = e.target.value //parseInt(e.target.value);
+	  const oldata = data[i][j];
+
+	  const bidouilliste = {a:1,z:2,e:3,r:4,t:5,y:6,u:7,i:8,o:9,
+		A:1,Z:2,E:3,R:4,T:5,Y:6,U:7,I:8,O:9,
+		'\&':1,é:2,'\"':3,"\'":4,'\(':5,'\-':6,è:7,_:8,ç:9};
+
+	  const androidChromeEstChiant = {'b':moveDown,'B':moveDown,
+		'h':moveUp,'H':moveUp,        'j':moveRight,'J':moveRight,
+		'g':moveLeft,'G':moveLeft,'v':moveLeft,'V':moveLeft,
+		'd':moveRight,'D':moveRight,'n':moveRight,'N':moveRight};
+
+	  if (val in bidouilliste) {
+		e.target.value = data[i][j] = bidouilliste[val];
+	  } else if (val <= 9 && val >=1) {
+		data[i][j] = parseInt(val);
+	  } else if (val == 0) {
+		data[i][j] = 0;
+		e.target.value = '';
+	  } else { 
+		e.target.value = data[i][j] === 0 ? '' : data[i][j];
+	  }
+
+		if (oldata === data[i][j]) {
+			e.stopPropagation();
+			e.preventDefault();
+		} else {
 			// Efface les puces car cela a été touché
 			var ele = document.getElementsByName("ModifierInit");
 			for(var ni=0;ni<ele.length;ni++)
 				ele[ni].checked = false;
-		
-		  html.dispatchEvent(new Event('input'));
-    })
-	
-	input.addEventListener('keyup',(e) => {
-		
-	switch (e.key) {
-		case "ArrowDown":
-		case "b":
-		case "B":
-		case "ArrowUp":
-		case "h":
-		case "H":
-		case "ArrowLeft":
-		case "g":
-		case "G":
-		case "ArrowRight":
-		case "d":
-		case "D":
-		case "Shift":
-		case "CapsLock":
-		case "NumLock":
-		case "Backspace":
-		case "Delete":
-			break; // https://www.w3.org/TR/uievents-key/#keys-modifier
-		default:
+			const jdata = JSON.stringify(data);
+			if (jdata == premier) {
+				ele[0].click(); // ele[0].ckecked KO :'(
+			} else if (jdata == deuxième) {
+				ele[1].click(); // ele[1].ckecked KO :'(
+			}
+			html.dispatchEvent(new Event('input'));
+		}
+
+		if (val in androidChromeEstChiant) {
+			androidChromeEstChiant[val](e);
+		} else {
 			moveRight(e);
-		} })		
+		}
+		document.activeElement.select();
+    })
 		
-  })
+  }) 
+	var ele = document.getElementsByName("ModifierInit");
+	const jdata = JSON.stringify(data);
+		if (jdata == premier) {
+			ele[0].click(); // ele[0].ckecked KO :'(
+		} else if (jdata == deuxième) {
+			ele[1].click(); // ele[1].ckecked KO :'(
+		}
   html.dispatchEvent(new Event('input'));
   return html;
 
@@ -724,10 +723,12 @@ end
 md"## Sudoku initial ⤴ (modifiable) et sa solution :"
 
 # ╔═╡ b2cd0310-2663-11eb-11d4-49c8ce689142
-listeJSudokuDeHTML isa Missing ? md"### ... 3, 2, 1 ... le lancement est engagé ! ... 🚀" : (SudokuVideSiBesoin[3] = listeJSudokuDeHTML; #= Pour sudoku initial =# sudokuSolution = trucquirésoudtoutSudoku(listeJSudokuDeHTML); sudokuSolution[2]) # La petite explication
+listeJSudokuDeHTML isa Missing ? md"### ... 3, 2, 1 ... le lancement est engagé ! ... 🚀" : (SudokuVideSiBesoin[3] = listeJSudokuDeHTML; #= Pour que le sudoku initial modifié reste en mémoire si besoin =# sudokuSolution = trucquirésoudtoutSudoku(listeJSudokuDeHTML); sudokuSolution[2]) # La petite explication
 
 # ╔═╡ bba0b550-2784-11eb-2f58-6bca9b1260d0
- @bind voirOuPas puces(["Cacher le résultat","Voir le résultat"],"Voir le résultat"; idPuces="CacherRésultat")
+ @bind voirOuPas puces(["Cacher le résultat","Voir le résultat"],"Voir le résultat"; idPuces="CacherRésultat") ## Par défaut, cela montre la solution, mais on peut cacher
+
+# @bind voirOuPas puces(["Cacher le résultat","Voir le résultat"],"Cacher le résultat"; idPuces="CacherRésultat") ## Cacher le résultat -> Changement de valeur par défaut ;)
 
 # ╔═╡ 4c810c30-239f-11eb-09b6-cdc93fb56d2c
 voirOuPas isa Missing ? nothing : (sudokuRésolu = voirOuPas=="Cacher le résultat" ? (typeof(sudokuSolution[1])==String ? md"""⚡ Attention, sudoku initial à revoir ! Même "Voir le résultat" ne le donnera pas 😜 """ : md"""###### Le sudoku résolu est caché pour le moment comme demandé... 🤐
@@ -742,20 +743,24 @@ function générateurDeCodeClé() {
   copyText.select();
   document.execCommand("copy");
 }
-
 document.querySelector("#clégén").addEventListener("click", générateurDeCodeClé);
+
+function goSudokuIni() {
+	document.getElementsByName("ModifierInit")[1].click();
+}
+document.querySelector("#LienBonus").addEventListener("click", goSudokuIni);
 </script>
-	<h5 id="Bonus">Bonus : pour garder le sudoku pour plus tard... </h5>
-	<div style="margin-top: 5px;">Il est possible de générer un code via le bouton ci-dessous (cela fait même la copie automatiquement :) </div>
-	<div style="margin-bottom: 5px;">Ce code garde le sudoku initial en cours (à coller et sauver dans un bloc-note ou autre). </div>
+	<h4 id="Bonus">Bonus : pour garder le sudoku pour plus tard... </h4>
+	<div style="margin-top: 5px;">Il est possible de générer un code via le bouton ci-dessous (cela fait même la copie automatique 😎). </div>
+	<div style="margin-top: 2px;margin-bottom: 5px;">Ce code garde le sudoku initial en cours (à coller et sauver dans un bloc-note ou autre). </div>
 	
 	<span> → </span><input type=button id="clégén" style='margin-left: 5px;margin-right: 5px;' value="Générer le code à garder :)"><span> ← </span>
 	<input id="pour-définir-le-sudoku-initial" type="text"/>
 	
-	<div style="margin-top: 2px;">Ensuite, dans une (nouvelle) session, cliquer sur |&nbsp;<i>Enter cell code...</i> | ci-dessous, ou créer n'importe quelle cellule via le petit + visible sur le coin en haut à gauche de chaque cellule existante. </div>
-	<div>Puis coller le code dans cette nouvelle cellule. </div>
-	<div>Enfin lancer le code avec le bouton&#xA0;▶ tout à droite (qui doit normalement clignoter justement 🤓) </div>
-	<div style="margin-top: 5px;">Recliquer sur "Le <a href="#ModifierInit">sudoku initial</a> ;)" pour revenir ainsi à ce sudoku sauvegardé ! </div>
+	<div style="margin-top: 2px;">Ensuite, dans une (nouvelle) session, cliquer sur &nbsp;| <i>Enter cell code...</i> |&#xA0; ci-dessous, puis coller le code dans cette cellule.</div>
+	<!--<div style="margin-top: 2px;">Ensuite, dans une (nouvelle) session, cliquer sur &nbsp;| <i>Enter cell code...</i> |&#xA0; ci-dessous, ou créer n'importe quelle cellule via le petit + visible sur le coin en haut à gauche de chaque cellule existante. Puis coller le code dans cette cellule.</div>-->
+	<div style="margin-top: 2px;">Enfin lancer le code avec le bouton ▶ tout à droite (qui doit normalement clignoter justement 😉). </div>
+	<div style="margin-top: 2px;">Cliquer sur "Le <a id="LienBonus" href="#ModifierInit">sudoku initial</a> ;)" pour revenir ainsi à ce sudoku sauvegardé ! </div>
 """)
 
 # ╔═╡ 1c9457f0-60f5-11eb-389f-d79dc5d74b83
