@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.12.21
+# v0.14.0
 
 using Markdown
 using InteractiveUtils
@@ -105,13 +105,14 @@ begin
 		return HTML(début * inputs * fin)
 	end
 
-	function htmlSudoku(liste9x9,liste9x9ini=fill(fill(0,9),9) ) # c'est clair
+	function htmlSudoku(liste9x9,liste9x9ini=fill(fill(0,9),9) ; toutVoir=true)
 		if typeof(liste9x9)==String 
 			return liste9x9
 		else
 			return HTML(raw"""<script>
 		// styleCSSpourSudokuCachéEnBasJusteAuDessusDuBonus!
-		const createSudokuHtml = (values, values_ini) => {
+				
+		const createSudokuHtml = (values, values_ini) => {	
 		  const data = [];
 		  const htmlData = [];
 		  for(let i=0; i<9;i++){
@@ -125,20 +126,32 @@ begin
 			  const block = [Math.floor(i/3), Math.floor(j/3)];
 			  const isEven = ((block[0]+block[1])%2 === 0);
 			  const isMedium = (j%3 === 0);
-			  const htmlCell = html`<td class='${isEven?"even-color":"odd-color"}' style='${isMedium?"border-style:solid !important; border-left-width:medium !important;":""}+${isInitial?"font-weight: bold;color:#5668a4;":""}'>${(value||'')}</td>`; // modifié légèrement
+			  const htmlCell = html`<td class='"""*(toutVoir ? "" : raw"""${isInitial?"":"blur"} """)*raw"""${isEven?"even-color":"odd-color"}' style='${isMedium?"border-style:solid !important; border-left-width:medium !important;":""}+${isInitial?"font-weight: bold;color:#5668a4;":""}'>${(value||'')}</td>`; // modifié légèrement
 			  data[i][j] = value||0;
 			  htmlRow.push(htmlCell);
 			}
 			const isMediumBis = (i%3 === 0);
     		htmlData.push(html`<tr style='${isMediumBis?"border-style:solid !important; border-top-width:medium !important;":""}'>${htmlRow}</tr>`);
 		  }
-		  const _sudoku = html`<table>
+		  const _sudoku = html`<table """*(toutVoir ? "" : raw"""style="user-select: none;" """)*raw""">
 			  <tbody>${htmlData}</tbody>
 			</table><br>`  
 		  // return {_sudoku,data};
+				
+				"""*(toutVoir ? "" : raw"""
+		let tds = _sudoku.querySelectorAll('td');
+  		tds.forEach(td => {
+				
+			td.addEventListener('click', (e) => {
+				e.target.classList.toggle("blur");
+				
+			});
+		});	""")*raw"""
+				
 		  return _sudoku;
 
 		}
+		
 		// sinon : return createSudokuHtml(...)._sudoku;
 		return createSudokuHtml(""" *"$liste9x9"*", "*"$liste9x9ini"*""");
 		</script>""")
@@ -147,7 +160,7 @@ begin
 	
 ######################################################################################
   # function trucquirésoudtoutSudoku(listeJSudokuDeHTML, nbToursMax = 10_000_000)
-  function trucquirésoudtoutSudoku(listeJSudokuDeHTML, nbToursMax = 203, nbRécursionsMax = 2, nbRécursions = 0) 
+  function trucquirésoudtoutSudoku(listeJSudokuDeHTML, nbToursMax = 203, nbEssaisMax = 3, nbEssais = 1) 
 	nbTours = 0 # cela compte les tours si choisi bien (avec un léger décalage)
 	nbToursTotal = 0 # le nombre qui ce programme a réellement fait
 	
@@ -167,9 +180,10 @@ begin
 # 		return ([[1,3,4,2,5,6,7,8,9],[5,2,6,7,8,9,1,3,4],[7,8,9,1,3,4,2,5,6],[2,5,1,3,4,7,9,6,8],[8,6,3,5,9,1,4,2,7],[4,9,7,6,2,8,3,1,5],[3,4,5,8,7,2,6,9,1],[6,7,2,9,1,5,8,4,3],[9,1,8,4,6,3,5,7,2]],md"""**Pour résoudre ce sudoku :** il fallait faire **48 choix** et **24 tours** (si on savait à l'avance les bons choix), ce programme ayant fait rééllement *2 457 708 tours* !!! 
 				
 # 		... j'ai un peu triché dans cette "IA" (en incluant ce cas) pour vous faire gagner du temps 😄""") ## <- Lenteurs évitées grace à Fast & Furious (cf. plus haut)
-	if nbRécursions>0 || vérifSudokuBon(mS)
+	if nbEssais>1 || vérifSudokuBon(mS)
 		while length(lesZéros)>0 && nbToursTotal <= nbToursMax
 			çaNavancePas = true # Permet de voir si rien ne se remplit en un tour
+			minChoixdesZéros = 10
 			nbTours += 1
 			nbToursTotal += 1
 			lesClésZérosàSuppr=Int[]
@@ -203,7 +217,6 @@ begin
 				end
 			end
 			if çaNavancePas || allerAuChoixSuivant # Pour avancer autrement ^^
-				minChoixdesZéros = 10
 				if allerAuChoixSuivant # Si le choix en cours n'est pas bon
 					if choixPrécédent==false || isempty(listedechoix)# pas de bol hein
 						return " ⚡ Sudoku impossible", md"""## ⚡ Sudoku impossible à résoudre... mais impossible de me piéger 😜
@@ -233,8 +246,6 @@ begin
 						deleteat!(listeTours, nbChoixfait)
 						nbChoixfait -= 1
 						choixPrécédent = listedechoix[nbChoixfait]
-						mS = copy(listedancienneMat[nbChoixfait])
-						lesZéros = copy(listedesZéros[nbChoixfait])
 						nbTours = listeTours[nbChoixfait]
 					end
 				else # Nouveau choix à faire et à garder en mémoire
@@ -254,7 +265,7 @@ begin
 		else return "🧐 Merci de corriger ce Sudoku ;)", md"""## 🧐 Merci de revoir ce sudoku, il n'est pas conforme : 
 			En effet, il doit y avoir au moins sur une ligne ou colonne ou carré, un chiffre en double, ou au mauvais endroit ! 😄"""
 	end
-	if nbRécursions > nbRécursionsMax
+	if nbEssais > nbEssaisMax
 		return "🤓 Merci de mettre un peu plus de chiffres... sudoku sûrement impossible ;)", md"""## 🤓 Merci de mettre plus de chiffres ;) 
 			
 		En effet, malgrès le fait que ce [Plutoku](https://github.com/4LD/plutoku) est quasi-parfait* 😄, certains cas (très rare bien sûr) peuvent mettre du temps (moins de 2 minutes) que je vous épargne ;)
@@ -263,10 +274,10 @@ begin
 		
 		_* Sauf erreur de votre humble serviteur_"""
 	elseif nbToursTotal > nbToursMax
-		return trucquirésoudtoutSudoku(listeJSudokuDeHTML, nbToursMax+5_321, nbRécursionsMax, nbRécursions+1) 
+		return trucquirésoudtoutSudoku(listeJSudokuDeHTML, nbToursMax+5_321, nbEssaisMax, nbEssais+1) 
 	else
 		# return matriceàlisteJS(mS') ## si on utilise : matriceSudoku(...)'
-		return (matriceàlisteJS(mS), md"**Pour résoudre ce sudoku :** il a fallu faire **$nbChoixfait choix** et **$nbTours $((nbTours>1) ? :tours : :tour)** (si on savait à l'avance les bons choix), ce programme ayant fait rééllement _**$nbToursTotal $((nbToursTotal>1) ? :tours : :tour) au total**_ en $(nbRécursions+1) $((nbRécursions+1>1) ? :essais : :essai) !!! 😃")
+		return (matriceàlisteJS(mS), md"**Pour résoudre ce sudoku :** il a fallu faire **$nbChoixfait choix** et **$nbTours $((nbTours>1) ? :tours : :tour)** (si on savait à l'avance les bons choix), ce programme ayant fait rééllement _**$nbToursTotal $((nbToursTotal>1) ? :tours : :tour) au total**_ en $(nbEssais) $((nbEssais>1) ? :essais : :essai) !!! 😃")
 	end
   end
 ######################################################################################
@@ -482,13 +493,18 @@ td input{
 	color:#aaa;
 }
 
+.blur{
+	color: transparent;
+	// filter: blur(5px);
+}
+
 </style>""" # fin du styleCSSpourSudokuCachéEnBasJusteAuDessusDuBonus! 
 
 # ╔═╡ 96d2d3e0-2133-11eb-3f8b-7350f4cda025
-md"# Résoudre un Sudoku par Alexis 😎" # v1.5 jeudi 01/04/2021 🐠
+md"# Résoudre un Sudoku par Alexis 😎" # v1.6 dimanche 04/04/2021 🔔
 
 # Pour la vue HTML et le style CSS, cela est fortement inspiré de https://github.com/Pocket-titan/DarkMode et pour le sudoku https://observablehq.com/@filipermlh/ia-sudoku-ple1
-# Pour basculer entre plusieurs champs automatiquement via JavaScript, merci à https://stackoverflow.com/a/15595732 , https://stackoverflow.com/a/44213036 et etc.
+# Pour basculer entre plusieurs champs automatiquement via JavaScript, merci à https://stackoverflow.com/a/15595732 , https://stackoverflow.com/a/44213036 et autres
 # Et bien sûr le calepin d'exemple de @fonsp "3. Interactivity"
 # Pour info, le code principal et styleCSSpourSudokuCachéEnBasJusteAuDessusDuBonus! :)
 
@@ -726,13 +742,11 @@ md"## Sudoku initial ⤴ (modifiable) et sa solution :"
 listeJSudokuDeHTML isa Missing ? md"### ... 3, 2, 1 ... le lancement est engagé ! ... 🚀" : (SudokuVideSiBesoin[3] = listeJSudokuDeHTML; #= Pour que le sudoku initial modifié reste en mémoire si besoin =# sudokuSolution = trucquirésoudtoutSudoku(listeJSudokuDeHTML); sudokuSolution[2]) # La petite explication
 
 # ╔═╡ bba0b550-2784-11eb-2f58-6bca9b1260d0
- @bind voirOuPas puces(["Cacher le résultat","Voir le résultat"],"Voir le résultat"; idPuces="CacherRésultat") ## Par défaut, cela montre la solution, mais on peut cacher
-
-# @bind voirOuPas puces(["Cacher le résultat","Voir le résultat"],"Cacher le résultat"; idPuces="CacherRésultat") ## Cacher le résultat -> Changement de valeur par défaut ;)
+ @bind voirOuPas puces(["Cacher le résultat","Entrevoir en touchant","Voir le résultat entier"],"Cacher le résultat"; idPuces="CacherRésultat") ## Par défaut, cela montre la solution, mais on peut cacher
 
 # ╔═╡ 4c810c30-239f-11eb-09b6-cdc93fb56d2c
-voirOuPas isa Missing ? nothing : (sudokuRésolu = voirOuPas=="Cacher le résultat" ? (typeof(sudokuSolution[1])==String ? md"""⚡ Attention, sudoku initial à revoir ! Même "Voir le résultat" ne le donnera pas 😜 """ : md"""###### Le sudoku résolu est caché pour le moment comme demandé... 🤐
-Bonne chance ! Sinon, merci de recocher ci-dessus : "Voir le résultat" """) : htmlSudoku(sudokuSolution[1],listeJSudokuDeHTML))
+voirOuPas isa Missing ? nothing : (sudokuRésolu = voirOuPas=="Cacher le résultat" ? (typeof(sudokuSolution[1])==String ? md"""⚡ Attention, sudoku initial à revoir ! Aucun résultat à voir 😜 """ : md"""###### Le sudoku résolu est caché pour le moment comme demandé... 🤐
+Bonne chance ! Pour information, "Entrevoir en touchant" permet de faire apparaître (ou disparaître) une case du sudoku à la demande. Enfin... cocher "Voir le résultat entier" pour les tricheurs.""") : htmlSudoku(sudokuSolution[1],listeJSudokuDeHTML,toutVoir=(voirOuPas != "Entrevoir en touchant") ))
 
 # ╔═╡ e986c400-60e6-11eb-1b57-97ba3089c8c1
 HTML("""
@@ -751,7 +765,7 @@ function goSudokuIni() {
 document.querySelector("#LienBonus").addEventListener("click", goSudokuIni);
 </script>
 	<h4 id="Bonus">Bonus : pour garder le sudoku pour plus tard... </h4>
-	<div style="margin-top: 5px;">Il est possible de générer un code via le bouton ci-dessous (cela fait même la copie automatique 😎). </div>
+	<div style="margin-top: 5px;">Il est possible de générer un code via le bouton ci-dessous (cela fait même la copie automatique ⚡). </div>
 	<div style="margin-top: 2px;margin-bottom: 5px;">Ce code garde le sudoku initial en cours (à coller et sauver dans un bloc-note ou autre). </div>
 	
 	<span> → </span><input type=button id="clégén" style='margin-left: 5px;margin-right: 5px;' value="Générer le code à garder :)"><span> ← </span>
