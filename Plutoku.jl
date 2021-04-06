@@ -43,7 +43,7 @@ begin
 	end
 	
 	matriceSudoku(listeJSudokuDeHTML) = hcat(listeJSudokuDeHTML...) #' en pinaillant
-	matriceàlisteJS(matrice9x9) = [matrice9x9[:,i] for i in 1:9] # I will be back !
+	matriceàlisteJS(matrice9x9,d=9) = [matrice9x9[:,i] for i in 1:d] # I will be back!
 	# matriceàlisteJS(matriceSudoku(listeJSudokuDeHTML)) == listeJSudokuDeHTML
 	# listeJSudokuDeHTMLavec0 = fill(fill(0,9),9)
 		
@@ -52,6 +52,10 @@ begin
 	vues(mat,i,j)= (view(mat,i,:), view(mat,:,j), view(mat, carré(i,j)...)) # liste des chiffres possible par lignes, colonnes et carrés
 	listecarré(mat)= [view(mat,carré(i,j)...) for i in 1:3:9 for j in 1:3:9] # La liste de tous les carrés du sudoku
 	chiffrePossible(mat,i,j)= setdiff(1:9,vues(mat,i,j)...) # Pour une case en i,j
+	function chiffrePropal(mat,i,j)
+		test = chiffrePossible(mat,i,j)
+		return matriceàlisteJS(reshape([((i in test) ? i : 0) for i in 1:9], (3,3)),3)
+	end
 
 	function vérifSudokuBon(mat)
 		lescarrés = listecarré(mat)
@@ -126,7 +130,7 @@ begin
 			  const block = [Math.floor(i/3), Math.floor(j/3)];
 			  const isEven = ((block[0]+block[1])%2 === 0);
 			  const isMedium = (j%3 === 0);
-			  const htmlCell = html`<td class='"""*(toutVoir ? "" : raw"""${isInitial?"":"blur"} """)*raw"""${isEven?"even-color":"odd-color"}' style='${isMedium?"border-style:solid !important; border-left-width:medium !important;":""}+${isInitial?"font-weight: bold;color:#5668a4;":""}'>${(value||'')}</td>`; // modifié légèrement
+			  const htmlCell = html`<td class='"""*(toutVoir ? "" : raw"""${isInitial?"":"grandblur blur"} """)*raw"""${isEven?"even-color":"odd-color"}' style='${isMedium?"border-style:solid !important; border-left-width:medium !important;":""} ${isInitial?"font-weight: bold;color:#5668a4;":""}'>${(value||'')}</td>`; // modifié légèrement
 			  data[i][j] = value||0;
 			  htmlRow.push(htmlCell);
 			}
@@ -139,7 +143,7 @@ begin
 		  // return {_sudoku,data};
 				
 				"""*(toutVoir ? "" : raw"""
-		let tds = _sudoku.querySelectorAll('td');
+		let tds = _sudoku.querySelectorAll('td.grandblur');
   		tds.forEach(td => {
 				
 			td.addEventListener('click', (e) => {
@@ -157,6 +161,101 @@ begin
 		</script>""")
 		end
 	end
+	
+	function htmlSudokuPropal(liste9x9,liste9x9ini=fill(fill(0,9),9) ; toutVoir=true, tousLesChiffres=true)
+		if typeof(liste9x9)==String 
+			return liste9x9
+		else
+			mS::Array{Int,2} = matriceSudoku(liste9x9ini)
+			mPropal = fill(fill( fill(0,3),3) , (9,9) )
+			for i in 1:9, j in 1:9
+				if mS[i,j] == 0
+					mPropal[i,j] = chiffrePropal(mS, i, j)
+				end
+			end
+			propal9x9 = matriceàlisteJS(mPropal)
+			return HTML(raw"""<script>
+		// styleCSSpourSudokuCachéEnBasJusteAuDessusDuBonus!
+				
+		const createSudokuHtml = (mvalues, values_ini) => {	
+		  const data = [];
+		  const htmlData = [];
+		  for(let i=0; i<9;i++){
+			let htmlRow = [];
+			data.push([]);
+			for(let j=0; j<9;j++){
+				
+			  	const htmlMiniData = [];
+				const isInitial = values_ini[i][j]>0;
+				var mini_sudoku = values_ini[i][j];
+				if (!(isInitial)) {
+				  for(let pl=0; pl<3;pl++){
+					let htmlMiniRow = [];
+					for(let pj=0; pj<3;pj++){
+					const miniValue = mvalues[i][j][pl][pj];
+					const htmlMiniCell = html`<td class='mini"""*(toutVoir ? "'" : raw"""${isInitial?"'":" miniblur blur'"} """)*raw""" data-row="${pl}" data-col="${pj}">${(miniValue||' ')}</td>`; 
+					htmlMiniRow.push(htmlMiniCell);
+					}
+					htmlMiniData.push(html`<tr style="border-style: none !important;">${htmlMiniRow}</tr>`);
+				  }
+				var mini_sudoku = html`<table class="minitab" """*(toutVoir ? "" : raw"""style="user-select: none;" """)*raw""">
+			  <tbody>${htmlMiniData}</tbody>
+			</table>`
+				}
+			  const valuee = mini_sudoku;
+			  const block = [Math.floor(i/3), Math.floor(j/3)];
+			  const isEven = ((block[0]+block[1])%2 === 0);
+			  const isMedium = (j%3 === 0);
+			  const htmlCell = html`<td class='${isEven?"even-color":"odd-color"}' style='${isMedium?"border-style:solid !important; border-left-width:medium !important;":""} ${isInitial?"font-weight: bold;font-size: 18pt;color:#5668a4;":""} data-row="${i}" data-col="${j}"'>${(valuee||'')}</td>`; // modifié légèrement
+			  data[i][j] = valuee||0;
+			  htmlRow.push(htmlCell);
+			}
+			const isMediumBis = (i%3 === 0);
+    		htmlData.push(html`<tr style='${isMediumBis?"border-style:solid !important; border-top-width:medium !important;":""}'>${htmlRow}</tr>`);
+		  }
+		  const _sudoku = html`<table """*(toutVoir ? "" : raw"""style="user-select: none;" """)*raw""">
+			  <tbody>${htmlData}</tbody>
+			</table><br>`  
+		  // return {_sudoku,data};
+				
+				"""*(toutVoir ? "" : raw"""
+		let tds = _sudoku.querySelectorAll('td.miniblur');
+  		tds.forEach(td => {
+			
+			"""*(tousLesChiffres ? raw"""
+			td.addEventListener('click', (e) => {
+				e.target.parentElement.parentElement.childNodes.forEach(ligne => {
+				  ligne.childNodes.forEach(colo => {
+					colo.classList.toggle("blur");
+				  });
+				}); 
+			});	
+				""" : raw"""	
+			td.addEventListener('click', (e) => {
+				const ilig = e.target.getAttribute('data-row');
+				const jcol = e.target.getAttribute('data-col'); 
+					e.target.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement.childNodes.forEach(tr => {
+					tr.childNodes.forEach(tdd => {
+
+						if (tdd.childNodes[0].childNodes[1]==null){
+						true;
+						} else {
+				tdd.childNodes[0].childNodes[1].childNodes[ilig].childNodes[jcol].classList.toggle("blur");
+					}});
+				});		
+			}); """)*raw"""
+	
+		});	""")*raw"""
+				
+		  return _sudoku;
+
+		}
+		
+		// sinon : return createSudokuHtml(...)._sudoku;
+		return createSudokuHtml(""" *"$propal9x9"*", "*"$liste9x9ini"*""");
+		</script>""")
+		end
+end
 	
 ######################################################################################
   # function trucquirésoudtoutSudoku(listeJSudokuDeHTML, nbToursMax = 10_000_000)
@@ -196,12 +295,12 @@ begin
 			if !allerAuChoixSuivant
 				for (key, (i,j)) in enumerate(lesZéros)
 					listechiffre = chiffrePossible(mS,i,j)
-					vérifligne[i] = union(vérifligne[i],listechiffre)
+					union!(vérifligne[i],listechiffre)
 					nbligne[i] += 1
-					vérifcol[j] = union(vérifcol[j],listechiffre)
+					union!(vérifcol[j],listechiffre)
 					nbcol[j] += 1
 					lecarré = kelcarré(i,j)
-					vérifcarré[lecarré] = union(vérifcarré[lecarré],listechiffre)
+					union!(vérifcarré[lecarré],listechiffre)
 					nbcarré[lecarré] += 1
 					if isempty(listechiffre) || length(vérifligne[i]) < nbligne[i] || length(vérifcol[j]) < nbcol[j] || length(vérifcarré[lecarré]) < nbcarré[lecarré] # Plus de possibilité (ou pas assez)... pas bon signe ^^
 						allerAuChoixSuivant = true # donc mauvais choix
@@ -454,18 +553,15 @@ table{
 pluto-output table {
     border: medium hidden #000 !important;
 }
-
+pluto-output table.minitab {
+	border-spacing: 0 !important;
+    border: 0 !important;
+	// margin: 1px !important;
+	margin: auto !important;
+}
 tr {
   border:0 !important;
   width:0
-}
-
-
-td{
-  width:38px !important; 
-  height:38px !important;
-  border:1px solid #ccc;
-  padding: 0 !important;
 }
 
 td.even-color{
@@ -473,13 +569,21 @@ td.even-color{
 	background-color:#000;
 	text-align:center;
 	font-size:14pt;
+	width:38px; 
+  	height:38px;
+	border:1px solid #ccc;
+	padding: 0;
 }
 
 td.odd-color{
   // background-color:#efefef;
-	background-color:#333;
+	background-color:#222;
 	text-align:center;
 	font-size:14pt;
+	border:1px solid #ccc;
+	width:38px; 
+  	height:38px;	
+	padding: 0;			  
 }
 
 input#pour-définir-le-sudoku-initial,
@@ -493,15 +597,34 @@ td input{
 	color:#aaa;
 }
 
-.blur{
+pluto-output table tr td.blur{
+	color: transparent;
+	user-select: none;
+	// filter: blur(5px);
+}
+
+pluto-output table tr td table tr td.blur{
+	// color: unset;
 	color: transparent;
 	// filter: blur(5px);
+}
+td.mini{
+	min-width:15px; 
+	// height:15px;
+	color: #b39700;
+	padding: 0;
+}
+
+td.grandblur{
+}
+
+td.miniblur{
 }
 
 </style>""" # fin du styleCSSpourSudokuCachéEnBasJusteAuDessusDuBonus! 
 
 # ╔═╡ 96d2d3e0-2133-11eb-3f8b-7350f4cda025
-md"# Résoudre un Sudoku par Alexis 😎" # v1.6 dimanche 04/04/2021 🔔
+md"# Résoudre un Sudoku par Alexis 😎" # v1.7 mardi 06/04/2021 🔔
 
 # Pour la vue HTML et le style CSS, cela est fortement inspiré de https://github.com/Pocket-titan/DarkMode et pour le sudoku https://observablehq.com/@filipermlh/ia-sudoku-ple1
 # Pour basculer entre plusieurs champs automatiquement via JavaScript, merci à https://stackoverflow.com/a/15595732 , https://stackoverflow.com/a/44213036 et autres
@@ -545,7 +668,6 @@ const createSudokuHtml = (values) => {
       const value = valuesLine?valuesLine[j]:0;
       const htmlInput = html`<input  
         type='text'
-		// pattern='[0-9]' //// ne fonctionne pas !
         data-row='${i}'
         data-col='${j}'
         maxlength='1' 
@@ -554,13 +676,13 @@ const createSudokuHtml = (values) => {
       const block = [Math.floor(i/3), Math.floor(j/3)];
       const isEven = ((block[0]+block[1])%2 === 0);
 	  const isMedium = (j%3 === 0);
-      const htmlCell = html`<td class='${isEven?"even-color":"odd-color"}' style='${isMedium?"border-style:solid !important; border-left-width:medium !important;":""}'>${htmlInput}</td>`
+      const htmlCell = html`<td class='${isEven?"even-color":"odd-color"}' ${isMedium?'style="border-style:solid !important; border-left-width:medium !important;"':""}>${htmlInput}</td>`
       data[i][j] = value||0;
       htmlRow.push(htmlCell);
     }
 	
     const isMediumBis = (i%3 === 0);
-    htmlData.push(html`<tr style='${isMediumBis?"border-style:solid !important; border-top-width:medium !important;":""}'>${htmlRow}</tr>`);
+    htmlData.push(html`<tr ${isMediumBis?'style="border-style:solid !important; border-top-width:medium !important;"':""}>${htmlRow}</tr>`);
   }
   const _sudoku = html`<table>
       <tbody>${htmlData}</tbody>
@@ -685,7 +807,7 @@ var sudokuViewReactiveValue = ({_sudoku:html, data}) => {
 		e.target.value = data[i][j] = bidouilliste[val];
 	  } else if (val <= 9 && val >=1) {
 		data[i][j] = parseInt(val);
-	  } else if (val == 0) {
+	  } else if ((val == 0)||(val == 'à')) {
 		data[i][j] = 0;
 		e.target.value = '';
 	  } else { 
@@ -742,11 +864,30 @@ md"## Sudoku initial ⤴ (modifiable) et sa solution :"
 listeJSudokuDeHTML isa Missing ? md"### ... 3, 2, 1 ... le lancement est engagé ! ... 🚀" : (SudokuVideSiBesoin[3] = listeJSudokuDeHTML; #= Pour que le sudoku initial modifié reste en mémoire si besoin =# sudokuSolution = trucquirésoudtoutSudoku(listeJSudokuDeHTML); sudokuSolution[2]) # La petite explication
 
 # ╔═╡ bba0b550-2784-11eb-2f58-6bca9b1260d0
- @bind voirOuPas puces(["Cacher le résultat","Entrevoir en touchant","Voir le résultat entier"],"Cacher le résultat"; idPuces="CacherRésultat") ## Par défaut, cela montre la solution, mais on peut cacher
+ @bind voirOuPas puces(["Cacher le résultat","Entrevoir en touchant","Tout voir"],"Cacher le résultat"; idPuces="CacherRésultat") ## Par défaut, cela montre la solution, mais on peut cacher
+
+# ╔═╡ c6f4f1a0-15e6-4f30-a1b5-54969b5772c6
+ @bind PropalOuSoluce puces(["La liste des possibles par case","Les possibilités d'un chiffre","Le sudoku fini"],"Le sudoku fini"; idPuces="PossiblesEtSolution") ## Par défaut, cela montre la solution, mais on peut cacher
 
 # ╔═╡ 4c810c30-239f-11eb-09b6-cdc93fb56d2c
-voirOuPas isa Missing ? nothing : (sudokuRésolu = voirOuPas=="Cacher le résultat" ? (typeof(sudokuSolution[1])==String ? md"""⚡ Attention, sudoku initial à revoir ! Aucun résultat à voir 😜 """ : md"""###### Le sudoku résolu est caché pour le moment comme demandé... 🤐
-Bonne chance ! Pour information, "Entrevoir en touchant" permet de faire apparaître (ou disparaître) une case du sudoku à la demande. Enfin... cocher "Voir le résultat entier" pour les tricheurs.""") : htmlSudoku(sudokuSolution[1],listeJSudokuDeHTML,toutVoir=(voirOuPas != "Entrevoir en touchant") ))
+if voirOuPas isa Missing
+	nothing
+elseif voirOuPas=="Cacher le résultat"
+	if typeof(sudokuSolution[1])==String
+			md"""⚡ Attention, sudoku initial à revoir ! Aucun résultat à voir 😜 """
+	else md"""###### Le sudoku résolu est caché pour le moment comme demandé 🤐
+Bonne chance ! Si besoin, cocher "Cacher le résultat" pour revoir ce message.
+
+Pour information, "Entrevoir en touchant" permet (en cliquant) de faire apparaître (ou disparaître) le contenu d'une case du sudoku à la demande. De plus : 
+
+"La liste des possibles par case" permet de voir l'ensemble des chiffres possibles d'une ou des cases. Enfin "Les possibilités d'un chiffre", en cliquant précisément dans une case vide (par exemple, dans le milieu c'est 5), permet de voir où chaque chiffre est possible dans l'ensemble du sudoku.
+
+Bien sûr, pour les plus grands tricheurs, il y a "Tout voir"."""
+	end
+elseif PropalOuSoluce=="Le sudoku fini"
+	htmlSudoku(sudokuSolution[1],listeJSudokuDeHTML,toutVoir=(voirOuPas != "Entrevoir en touchant") )
+else htmlSudokuPropal(sudokuSolution[1],listeJSudokuDeHTML ; toutVoir=(voirOuPas != "Entrevoir en touchant"), tousLesChiffres=(PropalOuSoluce!="Les possibilités d'un chiffre") )
+end
 
 # ╔═╡ e986c400-60e6-11eb-1b57-97ba3089c8c1
 HTML("""
@@ -788,6 +929,7 @@ document.querySelector("#LienBonus").addEventListener("click", goSudokuIni);
 # ╟─7cce8f50-2469-11eb-058a-099e8f6e3103
 # ╟─b2cd0310-2663-11eb-11d4-49c8ce689142
 # ╟─bba0b550-2784-11eb-2f58-6bca9b1260d0
+# ╟─c6f4f1a0-15e6-4f30-a1b5-54969b5772c6
 # ╟─4c810c30-239f-11eb-09b6-cdc93fb56d2c
 # ╟─43ec2840-239d-11eb-075a-071ac0d6f4d4
 # ╟─e986c400-60e6-11eb-1b57-97ba3089c8c1
