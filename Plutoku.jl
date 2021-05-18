@@ -563,7 +563,7 @@ end
 	if !isa(x, Int) # Permet de choisir le nombre de zéro ou un intervale
 		x=funk(x)
 	end
-	(0 < x < 82) ? x : 81 # Pour ceux aux gros doigts, ou qui voit trop grand
+	x = (0 < x < 82) ? x : 81 # Pour ceux aux gros doigts, ou qui voit trop grand
 	liste = shuffle!([(i,j) for i in 1:9 for j in 1:9])
 	for (i,j) in liste[1:x] # nbApproxDeZéros
 		matzéro[i,j] = 0
@@ -813,6 +813,7 @@ td input{
   border:0;
 	color:#aaa;
 }
+td { min-width: 38px; }
 
 pluto-output table tr td.blur{
 	color: transparent;
@@ -919,7 +920,7 @@ pluto-cell > pluto-runarea {
 }
 main {
 	margin-top: 0;
-    padding-bottom: 3rem !important;
+    padding-bottom: 4rem !important;
 }
 pluto-shoulder {
 	display: block !important;
@@ -944,7 +945,7 @@ pluto-output.rich_output code {
 </style>""") # fin du styleCSSpourSudokuCachéEnBasJusteAuDessusDuBonus! 
 
 # ╔═╡ 96d2d3e0-2133-11eb-3f8b-7350f4cda025
-md"# Résoudre un Sudoku par Alexis 😎" # v1.8.0 lundi 17/05/2021 🤟
+md"# Résoudre un Sudoku par Alexis 😎" # v1.8.1 mardi 18/05/2021 🤟
 
 # Pour la vue HTML et le style CSS, cela est fortement inspiré de https://github.com/Pocket-titan/DarkMode et pour le sudoku https://observablehq.com/@filipermlh/ia-sudoku-ple1
 # Pour basculer entre plusieurs champs automatiquement via JavaScript, merci à https://stackoverflow.com/a/15595732 , https://stackoverflow.com/a/44213036 et autres
@@ -957,7 +958,7 @@ md"# Résoudre un Sudoku par Alexis 😎" # v1.8.0 lundi 17/05/2021 🤟
 # Ou https://binder.plutojl.org/open?url=https:%252F%252Fraw.githubusercontent.com%252F4LD%252Fplutoku%252Fmain%252FPlutoku.jl
 
 # ╔═╡ 81bbbd00-2c37-11eb-38a2-09eb78490a16
-md"""Si besoin, dans cette session, le sudoku en cours (ci-dessous) peut rester en mémoire en cliquant sur le bouton suivant : $(@bind boutonSudokuInitial html"<input type=button style='margin: 0 10px 0 10px;' value='En cours → Le sudoku initial ;)'>") *(s'il est vide, un sudoku aléatoire est construit)*"""
+md"""Si besoin, dans cette session, le sudoku en cours (ci-dessous) peut rester en mémoire en cliquant sur le bouton suivant : $(@bind boutonSudokuInitial html"<input type=button style='margin: 0 10px 0 10px;' value='En cours → Le sudoku initial ;)'>") *( si vide → sudoku aléatoire )*"""
 
 # ╔═╡ caf45fd0-2797-11eb-2af5-e14c410d5144
 begin 
@@ -972,10 +973,6 @@ begin
 	SudokuInitial = HTML("""
 <script>
 // styleCSSpourSudokuCachéEnBasJusteAuDessusDuBonus!
-
-const copieclip = (donnée) => {
-	// navigator.clipboard.writeText('vieuxSudoku!(' + JSON.stringify(donnée) + ')'); /* Pour une copie sans fin dans le presse-papier retire les // devant navigator.clip... */
-};
 
 const premier = JSON.stringify( $(SudokuMémo[1]) );
 const deuxième = JSON.stringify( $(SudokuMémo[2]) );
@@ -1010,7 +1007,7 @@ const createSudokuHtml = (values) => {
     const isMediumBis = (i%3 === 0);
     htmlData.push(html`<tr ${isMediumBis?'style="border-style:solid !important; border-top-width:medium !important;"':""}>${htmlRow}</tr>`);
   }
-  const _sudoku = html`<table>
+  const _sudoku = html`<table id="sudokincipit" sudata=${JSON.stringify(data)} >
       <tbody>${htmlData}</tbody>
     </table>`  
   return {_sudoku,data};
@@ -1018,7 +1015,6 @@ const createSudokuHtml = (values) => {
 }
 
 var sudokuViewReactiveValue = ({_sudoku:html, data}) => {
-  // var pourgarderlecode = document.getElementById("pour-définir-le-sudoku-initial");
   html.addEventListener('input', (e)=>{
     e.stopPropagation();
     e.preventDefault();
@@ -1105,9 +1101,7 @@ var sudokuViewReactiveValue = ({_sudoku:html, data}) => {
 				} else if (jdata == deuxième) {
 					ele[1].checked = true;
 				}
-		var pourgarderlecode = document.getElementById("pour-définir-le-sudoku-initial");
-				pourgarderlecode.setAttribute('sudokool', JSON.stringify(data));
-				copieclip(data);
+				html.setAttribute('sudata', jdata);
 				html.dispatchEvent(new Event('input'));
 			}
 			(e.key==="Delete")?moveRight(e):moveLeft(e);
@@ -1158,9 +1152,7 @@ var sudokuViewReactiveValue = ({_sudoku:html, data}) => {
 			} else if (jdata == deuxième) {
 				ele[1].checked = true;
 			}
-		var pourgarderlecode = document.getElementById("pour-définir-le-sudoku-initial");
-			pourgarderlecode.setAttribute('sudokool', JSON.stringify(data));
-			copieclip(data);
+			html.setAttribute('sudata', jdata);
 			html.dispatchEvent(new Event('input'));
 		}
 
@@ -1173,17 +1165,14 @@ var sudokuViewReactiveValue = ({_sudoku:html, data}) => {
     })
 		
   }) 
-	var ele = document.getElementsByName("ModifierInit");
-	const jdata = JSON.stringify(data);
-		if (jdata == premier) {
-			ele[0].checked = true;
-		} else if (jdata == deuxième) {
-			ele[1].checked = true; // ...].click(); // était KO...
-		}
-var pourgarderlecode = document.getElementById("pour-définir-le-sudoku-initial");
-  pourgarderlecode.setAttribute('sudokool', JSON.stringify(data));
-		navigator.clipboard.writeText('vieuxSudoku!(' + JSON.stringify(data) + ')');
-  copieclip(data);
+  var ele = document.getElementsByName("ModifierInit");
+  const jdata = JSON.stringify(data);
+  if (jdata == premier) {
+	ele[0].checked = true;
+  } else if (jdata == deuxième) {
+	ele[1].checked = true; // ...].click(); // était KO...
+  }
+  html.setAttribute('sudata', jdata);
   html.dispatchEvent(new Event('input'));
   return html;
 
@@ -1195,7 +1184,7 @@ return sudokuViewReactiveValue(createSudokuHtml(defaultFixedValues));
 end
 
 # ╔═╡ 7cce8f50-2469-11eb-058a-099e8f6e3103
-md"## Sudoku initial ⤴ (modifiable) et sa solution :"
+md"## Sudoku initial ⤴ (modifiable) et sa solution :"
 
 # ╔═╡ b2cd0310-2663-11eb-11d4-49c8ce689142
 bindJSudoku isa Missing ? md"### ... 3, 2, 1 ... le lancement est engagé ! ... 🚀" : (SudokuMémo[3] = bindJSudoku; #= Pour que le sudoku en cours (initial modifié) reste en mémoire si besoin -> Le sudoku initial ;) =# sudokuSolution = résoutSudoku(bindJSudoku); sudokuSolution[2]) # La petite explication seule
@@ -1215,9 +1204,9 @@ elseif voirOuPas=="😉 Cachée"
 	else md"""###### 🤐 Le sudoku est caché pour le moment comme demandé
 Bonne chance ! Si besoin, cocher `😉 Cachée` pour revoir ce message .
 
-Pour information, `En touchant, entrevoir les chiffres...` permet en cliquant de faire apparaître (ou disparaître via les chiffres bleus) le contenu choisi, comme un coup de pouce. De plus : 
+Pour information, `En touchant, entrevoir les chiffres...` permet en cliquant de faire apparaître (et disparaître via les chiffres bleus) le contenu choisi, comme un coup de pouce. De plus : 
 
-En cliquant précisément dans une case (par exemple, au milieu c'est le chiffre 5), les `...possibles par chiffre` permettent de voir où chaque chiffre est possible dans dans les cases liées (sa ligne, colonne et son carré). Les `...possibles par case` permettent de voir l'ensemble des chiffres possibles d'une ou des cases cliquées. Seul les chiffres `...de la solution` montre le (ou les) chiffre du sudoku fini.
+En cliquant précisément dans une case (par exemple, au milieu c'est le chiffre 5), les `...possibles par chiffre` permettent de voir où chaque chiffre est possible dans dans les cases liées (sa ligne, sa colonne et son carré). Les `...possibles par case` permettent de voir l'ensemble des chiffres possibles (d'une ou) des cases cliquées. Seuls les chiffres `...de la solution` montrent (un ou) des chiffres du sudoku fini.
 
 Bien sûr, il y a pour chaque catégorie : 
 `Pour toutes les cases, voir les chiffres...` pour les plus grands tricheurs."""
@@ -1235,15 +1224,12 @@ HTML(
 raw"""<script>
 function générateurDeCodeClé() {
   var copyText = document.getElementById("pour-définir-le-sudoku-initial");
-  // copyText.value = '"""*raw"vieuxSudoku!($bindJSudoku)"*raw"""'.replace(/ /g, '') ;
-  copyText.value = 'vieuxSudoku!(' + copyText.getAttribute('sudokool') + ')';
+  var pastext = document.getElementById("sudokincipit");
+  copyText.value = 'vieuxSudoku!(' + pastext.getAttribute('sudata') + ')';
   copyText.select();
   navigator.clipboard.writeText(copyText.value); // document.execCommand("copy");
-  // var plutook = JSON.stringify(window.location.href).replace('edit', 'notebookfile').replace('"', '')
-  // window.open(plutook, '_blank'); // // window.location.href = plutook;
 }
 document.getElementById("clégén").addEventListener("click", générateurDeCodeClé);
-// alert("blip");
 	
 var editCSS = document.createElement('style');
 document.body.appendChild(editCSS);
@@ -1254,11 +1240,7 @@ let touslestemps = document.getElementsByClassName("runtime");
 for(let j=0; j<(Object.keys(touslestemps).length); j++){
 	touslestemps[j].addEventListener("click", (e) => {
 		// alert(e.target.classList.toggle("opaqueoupas"));
-		if (togglé=="0"){
-			togglé = "0.5";
-		} else {
-			togglé = "0";
-		};
+		togglé = (togglé=="0") ? "0.5" : "0" ;
 		editCSS.innerHTML = "pluto-cell > pluto-runarea { opacity: "+ togglé + "; }";
 	});
 };
@@ -1266,16 +1248,18 @@ for(let j=0; j<(Object.keys(touslestemps).length); j++){
 	<h4 id="Bonus">Bonus : garder le sudoku en cours plus tard... </h4>
 	<div style="margin-top: 5px;margin-bottom: 5px;">Je conseille de garder le code du sudoku en cours (en cliquant, la copie est automatique ⚡). </div>
 	
-	<span> → </span><input type=button id="clégén" style='margin-left: 5px;margin-right: 5px;' value="Copier le code à garder :)"><span> ← <strong>Note</strong> : à coller dans un bloc-notes, ou en dehors de cette page. </span>
+	<span> → </span><input type=button id="clégén" style='margin-left: 5px;margin-right: 5px;' value="Copier le code à garder :)"><span> ← <strong>Note</strong> : à coller dans un bloc-notes par exemple. </span>
 	<input id="pour-définir-le-sudoku-initial" type="text" style='font-size: x-small;' sudokool="[[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,1,2,3,4,5,0,0,0],[0,2,0,0,3,0,6,0,0],[0,3,4,5,6,0,0,7,0],[0,6,0,0,7,0,8,0,0],[0,7,0,0,8,9,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]]" />
 	
-	<h4 id="BonusSuite">...et pour retrouver ce vieux sudoku : </h4>
-	<div style="margin-top: 5px;">Copier le code souhaité, gardé d'un bloc-notes ou autre (cf. note ci-dessus).</div>
+	<h4 id="BonusSuite" style="margin-top: 5px;">...et pour retrouver ce vieux sudoku : </h4>
+	<div style="margin-top: 5px;">Copier le code souhaité (d'un bloc-notes ou autre, cf. note ci-dessus).</div>
 	<div style="margin-top: 3px;">Ensuite, dans une (nouvelle) session, cliquer dans &nbsp;| <i>Enter cell code...</i> |&#xA0; ci-dessous ↓ et coller le code.</div>
-	<!--<div style="margin-top: 3px;">Ensuite, dans une (nouvelle) session, cliquer sur &nbsp;| <i>Enter cell code...</i> |&#xA0; ci-dessous ⤵, ou créer n'importe quelle cellule via le petit + non visible sur le coin en haut à gauche de chaque cellule existante. Puis coller le code dans cette cellule.</div>-->
 	<div style="margin-top: 3px;">Enfin, lancer le code avec le bouton ▶ tout à droite, qui clignote justement. </div>
 	<div>Ce vieux sudoku est restoré en place du sudoku initial ! (et automatiquement de <a href='#ModifierInit'>retour en haut ↑</a> ).</div>
-	<div style="margin-top: 10px;"> <strong>Autres petites astuces</strong> : en réalité en dehors de cellule ou de case, le fait de coller (même en <a href='#ModifierInit'>haut</a> de la page) créée une cellule tout en bas (en plus) avec le code. Cela peut faire gagner un peu de temps, ou permet de mettre plusieurs vieux sudokus (cependant, seul le dernier, où le bouton ▶ fut appuyé, est pris en compte). </div>
+
+
+	<h6 id="BonusAstuces" style="margin-top: 10px;"> Autres petites astuces :</h6>
+	<div> En réalité en dehors de cellule ou de case, le fait de coller (même en <a href='#ModifierInit'>haut</a> de la page) créée une cellule tout en bas (en plus) avec le code. Cela peut faire gagner un peu de temps, et permet de mettre plusieurs vieux sudokus (cependant, seul le dernier, où le bouton ▶ fut appuyé, est pris en compte). </div>
 	<div style="margin-top: 3px;">De plus, la fonction <strong>vieuxSudoku!()</strong> sans paramètre permet de générer un sudoku aléatoire. En mettant uniquement un nombre en paramètre, par exemple <strong>vieuxSudoku!(62)</strong> : ce sera le nombre de cases vides du sudoku aléatoire construit. Enfin, en mettant un intervalle, sous la forme <strong>début : fin</strong>, par exemple <strong>vieuxSudoku!(1:81)</strong> : un nombre aléatoire dans cette intervalle sera utilisé. Pour tous ces sudokus aléatoires, le fait de recliquer sur le bouton ▶ en génère un neuf.</div>
 """)
 
